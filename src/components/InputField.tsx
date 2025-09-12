@@ -39,7 +39,7 @@ export function InputField({
           autoComplete="off"
         />
       )}
-      <div className={`absolute text-sm text-gray-500 dark:text-gray-400 ${errors[id] ? "peer-focus:text-red-500" : "peer-focus:text-blue-600"} duration-300 transform -translate-y-4 scale-75 top-2 z-10 origin-[0] px-2 peer-focus:px-2 peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-6 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 rtl:peer-focus:translate-x-1/4 rtl:peer-focus:left-auto start-1`}>
+      <div className={`absolute text-sm dark:text-gray-400 ${errors[id] ? "peer-focus:text-red-500" : "peer-focus:text-blue-600"} duration-300 transform -translate-y-4 scale-75 top-2 z-10 origin-[0] px-2 peer-focus:px-2 peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-6 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 rtl:peer-focus:translate-x-1/4 rtl:peer-focus:left-auto start-1`}>
         <label htmlFor={id}>{label}</label>
         <div className="absolute h-[12px] -z-10 w-11/12 top-[3px] left-1 bg-white dark:bg-[#242424] rounded-xs"/>
       </div>
