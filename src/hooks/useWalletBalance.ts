@@ -34,30 +34,55 @@ export const useWalletBalance = () => {
       // Convert date to end-of-day Unix timestamp
       const targetDate = new Date(timestamp + 'T23:59:59Z');
       const targetTimestamp = Math.floor(targetDate.getTime() / 1000);
-      
+
+      // Check if date is in the future
+      const currentTimestamp = Math.floor(Date.now() / 1000);
+      if (targetTimestamp > currentTimestamp) {
+        throw new Error('Cannot check balance for future dates. Please select a date in the past.');
+      }
+
       // Find the block number for this timestamp using binary search
       const blockNumber = await findBlockByTimestamp(apiKey, targetTimestamp);
       const blockNumHex = '0x' + blockNumber.toString(16);
 
-      // Get balance at that block using ERC-20 balanceOf
-      const response = await fetch(`https://eth-mainnet.g.alchemy.com/v2/${apiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          id: 1,
-          method: 'eth_call',
-          params: [
-            {
-              to: contractAddress,
-              data: `0x70a08231000000000000000000000000${walletAddress.slice(2)}`
-            },
-            blockNumHex,
-          ],
-        }),
-      });
+      let response;
+
+      // Check if this is native ETH (no contract address) or ERC-20 token
+      if (!contractAddress || contractAddress === '') {
+        // Native ETH balance
+        response = await fetch(`https://eth-mainnet.g.alchemy.com/v2/${apiKey}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'eth_getBalance',
+            params: [walletAddress, blockNumHex],
+          }),
+        });
+      } else {
+        // ERC-20 token balance
+        response = await fetch(`https://eth-mainnet.g.alchemy.com/v2/${apiKey}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'eth_call',
+            params: [
+              {
+                to: contractAddress,
+                data: `0x70a08231000000000000000000000000${walletAddress.slice(2)}`
+              },
+              blockNumHex,
+            ],
+          }),
+        });
+      }
 
       const data = await response.json();
 
