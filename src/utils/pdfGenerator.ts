@@ -1,12 +1,19 @@
 import jsPDF from "jspdf";
 import type { EvmAsset } from "../types";
 
+const hashAddress = async (address: string): Promise<string> => {
+  const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(address));
+  return Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+};
+
 interface PDFParams {
   formData: {
-    date?: string;
-    network?: string;
+    date: string;
+    network: string;
     asset: EvmAsset;
-    address?: string;
+    address: string;
   };
   balance: string | null;
   prices?: {
@@ -37,69 +44,92 @@ export const generateWalletBalancePDF = async ({
         reader.readAsDataURL(logoBlob);
       });
 
-      // Add logo at the top right corner - keeping aspect ratio 1:1 for square logo
+      // Add logo centered at the top
       const logoWidth = 40;
       const logoHeight = 40;
-      const logoX = pageWidth - logoWidth - 10; // 10mm margin from right edge
-      doc.addImage(logoBase64, "JPEG", logoX, 10, logoWidth, logoHeight);
+      const logoX = (pageWidth - logoWidth) / 2; // Center horizontally
+      doc.addImage(logoBase64, "JPEG", logoX, 30, logoWidth, logoHeight);
 
-      // Add title at the top left
+      // Add title left-aligned below the logo
       doc.setFontSize(20);
-      doc.text("Wallet Balance Report", 20, 25);
+      doc.text("Wallet Balance Report for Tax Purposes", 20, 100);
     } catch (logoError) {
       console.log("Logo failed, continuing without:", logoError);
-      // If logo fails, just add title
       doc.setFontSize(20);
-      doc.text("Wallet Balance Report", 20, 20);
+      doc.text("Wallet Balance Report for Tax Purposes", 20, 30);
     }
 
-    // Add report details
-    doc.setFontSize(12);
-    doc.text(`Date: ${formData.date || "Not specified"}`, 20, 45);
-    doc.text(`Network: ${formData.network || "Not specified"}`, 20, 55);
-    doc.text(`Token: ${formData.asset.name || "Not specified"}`, 20, 65);
-    // Hash the address for privacy
-    const addressHash = formData.address
-      ? await crypto.subtle.digest('SHA-256', new TextEncoder().encode(formData.address))
-        .then(hashBuffer => Array.from(new Uint8Array(hashBuffer))
-          .map(b => b.toString(16).padStart(2, '0'))
-          .join(''))
-      : "Not specified";
+    // Determine starting Y position based on whether logo loaded
+    const startY = 110;
 
-    doc.text(`Address Hash: ${addressHash}`, 20, 75);
+    // Add horizontal line above data section
+    doc.setLineWidth(0.5);
+    doc.line(20, startY, pageWidth - 20, startY);
+
+    // Add report details with proper tabbed formatting
+    const dataStartY = startY + 12.5;
+    const labelX = 20;      // X position for labels
+    const valueX = 45;      // X position for values (aligned column)
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+
+    // Print labels and values separately for perfect alignment
+    doc.text("Date:", labelX, dataStartY);
+    doc.text(formData.date || "Not specified", valueX, dataStartY);
+
+    doc.text("Network:", labelX, dataStartY + 10);
+    doc.text(formData.network || "Not specified", valueX, dataStartY + 10);
+
+    doc.text("Token:", labelX, dataStartY + 20);
+    doc.text(formData.asset.name || "Not specified", valueX, dataStartY + 20);
+
+    // Hash the address for privacy
+    const addressHash = await hashAddress(formData.address);
+    doc.text("Address:", labelX, dataStartY + 30);
+    doc.text(addressHash, valueX, dataStartY + 30);
 
     // Add balance if available
     if (balance) {
-      doc.setFontSize(14);
       doc.setFont(undefined, "bold");
-      doc.text(`Balance: ${balance} ${formData.asset.name || "tokens"}`, 20, 95);
+      doc.text("Balance:", labelX, dataStartY + 50);
+      doc.text(`${balance} ${formData.asset.name || "tokens"}`, valueX, dataStartY + 50);
       doc.setFont(undefined, "normal");
 
       // Add currency value if prices are available
       if (prices) {
-        doc.setFontSize(12);
-        doc.setFont("helvetica", "normal");
         const currencyValue =
           selectedCurrency === "USD"
-            ? `~ ${(parseFloat(balance) * prices.usd).toFixed(2)} USD`
+            ? `${(parseFloat(balance) * prices.usd).toFixed(2)}`
             : selectedCurrency === "EUR"
-            ? `~ ${(parseFloat(balance) * prices.eur).toFixed(2)} EUR`
-            : `~ ${(parseFloat(balance) * prices.chf).toFixed(2)} CHF`;
-        doc.text(currencyValue, 20, 105);
+            ? `${(parseFloat(balance) * prices.eur).toFixed(2)}`
+            : `${(parseFloat(balance) * prices.chf).toFixed(2)}`;
+
+        doc.text("In CHF:", labelX, dataStartY + 60);
+        doc.text(currencyValue, valueX, dataStartY + 60);
       }
     } else {
-      doc.setFontSize(12);
-      doc.text(`Balance: Not yet fetched`, 20, 95);
+      doc.setFont(undefined, "bold");
+      doc.text("Balance:", labelX, dataStartY + 50);
+      doc.text("Not yet fetched", valueX, dataStartY + 50);
+      doc.setFont(undefined, "normal");
     }
 
-    // Add timestamp
-    doc.setFontSize(10);
-    doc.setTextColor(128, 128, 128);
-    doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, prices && balance ? 120 : 115);
+    // Add horizontal line below data section
+    const dataEndY = prices && balance ? dataStartY + 70 : dataStartY + 60;
+    doc.line(20, dataEndY, pageWidth - 20, dataEndY);
 
-    // Add footer
-    doc.setFontSize(8);
-    doc.text("LedgerReport.com - Historical Wallet Balance Checker", pageWidth / 2, 280, { align: "center" });
+    // Add footer at the bottom of the page
+    const pageHeight = doc.internal.pageSize.getHeight();
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0); // Reset to black
+
+    const currentDate = new Date();
+    const formattedDate = `${currentDate.getDate()}.${(currentDate.getMonth() + 1)}.${currentDate.getFullYear()}`;
+    const formattedTime = `${currentDate.getHours().toString().padStart(2, '0')}:${currentDate.getMinutes().toString().padStart(2, '0')}:${currentDate.getSeconds().toString().padStart(2, '0')}`;
+
+    doc.text("Data generated with LedgerReport.com - Historical Wallet Balance Checker", 20, pageHeight - 20);
+    doc.text(`Generated on: ${formattedDate}, ${formattedTime}`, 20, pageHeight - 15);
 
     // Save the PDF
     doc.save(`wallet-balance-${formData.date || "report"}.pdf`);
