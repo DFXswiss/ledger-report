@@ -8,6 +8,7 @@ import { Button } from "./components/Button";
 import { DatePicker } from "./components/DatePicker";
 import DropDownMenu from "./components/DropDownMenu";
 import { useWalletBalance } from "./hooks/useWalletBalance";
+import { useCurrencyPrice } from "./hooks/useCurrencyPrice";
 import jsPDF from "jspdf";
 
 const EVM_NETWORKS = [
@@ -34,6 +35,7 @@ type FormData = {
   network: string;
   token: string;
   address: string;
+  currency: string;
 };
 
 type AssetMap = Record<string, Asset[]>;
@@ -42,11 +44,13 @@ export default function App() {
   const [assetMap, setAssetMap] = useState<AssetMap>({});
   const [selectedNetwork, setSelectedNetwork] = useState<string>("");
   const [selectedToken, setSelectedToken] = useState<string>("");
+  const [selectedCurrency, setSelectedCurrency] = useState<string>("USD");
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | undefined>();
 
   const { balance, loading: balanceLoading, error: balanceError, fetchBalance } = useWalletBalance();
+  const { prices, loading: priceLoading, error: priceError, fetchPrice } = useCurrencyPrice();
 
   const [urlParams, setUrlParams] = useSearchParams();
 
@@ -84,6 +88,8 @@ export default function App() {
       });
   }, []);
 
+  const currencies = ["USD", "EUR", "CHF"];
+
   const {
     register,
     handleSubmit,
@@ -99,6 +105,7 @@ export default function App() {
       network: urlParams.get("network") || "",
       token: urlParams.get("token") || "",
       address: urlParams.get("address") || "",
+      currency: urlParams.get("currency") || "USD",
     },
   });
 
@@ -109,7 +116,7 @@ export default function App() {
   async function onSubmit(data: FormData) {
     setError(undefined);
 
-    const { date, address, network, token } = data;
+    const { date, address, network, token, currency } = data;
 
     // Find the selected token in the asset map
     const selectedAsset = assetMap[network]?.find((asset) => asset.name === token);
@@ -126,6 +133,7 @@ export default function App() {
     const apiKey = import.meta.env.VITE_ALCHEMY_API_KEY || "YOUR_ALCHEMY_API_KEY";
 
     try {
+      // Fetch balance
       await fetchBalance({
         walletAddress: address,
         contractAddress: selectedAsset.chainId || "",
@@ -133,6 +141,15 @@ export default function App() {
         timestamp: date,
         apiKey,
       });
+
+      // Fetch price if contract address exists
+      if (selectedAsset.chainId) {
+        await fetchPrice({
+          contractAddress: selectedAsset.chainId,
+          blockchain: network,
+          date: date,
+        });
+      }
     } catch (error: any) {
       setError(error.toString());
     }
@@ -202,6 +219,17 @@ export default function App() {
         doc.setFont(undefined, 'bold');
         doc.text(`Balance: ${balance} ${selectedToken || 'tokens'}`, 20, 95);
         doc.setFont(undefined, 'normal');
+
+        // Add currency value if prices are available
+        if (prices) {
+          doc.setFontSize(12);
+          const currencyValue = selectedCurrency === 'USD'
+            ? `≈ $${(parseFloat(balance) * prices.usd).toFixed(2)} USD`
+            : selectedCurrency === 'EUR'
+            ? `≈ €${(parseFloat(balance) * prices.eur).toFixed(2)} EUR`
+            : `≈ CHF ${(parseFloat(balance) * prices.chf).toFixed(2)}`;
+          doc.text(currencyValue, 20, 105);
+        }
       } else {
         doc.setFontSize(12);
         doc.text(`Balance: Not yet fetched`, 20, 95);
@@ -210,7 +238,7 @@ export default function App() {
       // Add timestamp
       doc.setFontSize(10);
       doc.setTextColor(128, 128, 128);
-      doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, 115);
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, prices && balance ? 120 : 115);
 
       // Add footer
       doc.setFontSize(8);
@@ -259,14 +287,23 @@ export default function App() {
           />
           <InputField id="address" label="Address" register={register} errors={errors} />
           <DatePicker id="date" label="Date" register={register} errors={errors} />
+          <DropDownMenu
+            list={currencies}
+            label="Currency"
+            value={selectedCurrency}
+            onChange={(value: string) => {
+              setSelectedCurrency(value);
+              setValue("currency", value);
+            }}
+          />
 
           {error && <div className="bg-red-200 text-red-500 p-2 rounded-md">{error}</div>}
 
           <Button
-            label={isLoading || balanceLoading ? "FETCHING BALANCE..." : "GET BALANCE"}
+            label={isLoading || balanceLoading || priceLoading ? "FETCHING DATA..." : "GET BALANCE"}
             onClick={handleValidationAndFocus}
-            disabled={isLoading || balanceLoading}
-            isLoading={isLoading || balanceLoading}
+            disabled={isLoading || balanceLoading || priceLoading}
+            isLoading={isLoading || balanceLoading || priceLoading}
             isGrayedOut={!isValid}
           />
 
@@ -279,11 +316,24 @@ export default function App() {
           />
 
           {balance && (
-            <div className="mt-2 p-2 rounded-md font-medium bg-green-200 text-green-800">Balance: {balance} USDT</div>
+            <div className="mt-2 p-4 rounded-md bg-green-50 border border-green-200">
+              <div className="font-semibold text-green-900 text-lg">
+                {balance} {selectedToken}
+              </div>
+              {prices && (
+                <div className="mt-2 text-green-700">
+                  {selectedCurrency === "USD" && `≈ $${(parseFloat(balance) * prices.usd).toFixed(2)} USD`}
+                  {selectedCurrency === "EUR" && `≈ €${(parseFloat(balance) * prices.eur).toFixed(2)} EUR`}
+                  {selectedCurrency === "CHF" && `≈ CHF ${(parseFloat(balance) * prices.chf).toFixed(2)}`}
+                </div>
+              )}
+            </div>
           )}
 
-          {balanceError && (
-            <div className="mt-2 p-2 rounded-md font-medium bg-red-200 text-red-500">{balanceError}</div>
+          {(balanceError || priceError) && (
+            <div className="mt-2 p-2 rounded-md font-medium bg-red-200 text-red-500">
+              {balanceError || priceError}
+            </div>
           )}
 
           <div className="mt-4 text-sm text-slate-500 dark:text-slate-400">
