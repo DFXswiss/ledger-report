@@ -1,0 +1,39 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20.x'
+
+jobs:
+  build-and-deploy:
+    name: Build and deploy to Production
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Use Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install packages
+        run: |
+          npm ci
+
+      - name: Build code
+        run: |
+          npm run build
+
+      - name: Deploy to hosting
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.PRD_HOST }}
+          username: ${{ secrets.PRD_USER }}
+          password: ${{ secrets.PRD_PASSWORD }}
+          local-dir: './dist/'
+          server-dir: '/ledgerreport.com/'
