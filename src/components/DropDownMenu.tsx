@@ -1,14 +1,22 @@
 import { useState, useRef, useEffect } from "react";
 
-interface DropDownProps {
-  list: string[];
+interface DropDownProps<T> {
+  list?: T[];
   label?: string;
-  value?: string;
-  onChange?: (value: string) => void;
+  value?: T;
+  itemLabel: (item: T) => string;
+  onChange?: (value: T) => void;
   disabled?: boolean;
 }
 
-export default function DropDownMenu({ list, label = "Select", value = "", onChange, disabled = false }: DropDownProps): React.JSX.Element {
+export default function DropDownMenu<T>({
+  list,
+  label = "Select",
+  value,
+  itemLabel,
+  onChange,
+  disabled = false,
+}: DropDownProps<T>): React.JSX.Element {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -20,13 +28,8 @@ export default function DropDownMenu({ list, label = "Select", value = "", onCha
       }
     };
 
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    if (isOpen) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
   return (
@@ -35,14 +38,16 @@ export default function DropDownMenu({ list, label = "Select", value = "", onCha
         id="dropdownUsersButton"
         data-dropdown-toggle="dropdownUsers"
         data-dropdown-placement="bottom"
-        className={`${value ? 'dark:text-white' : 'dark:text-gray-400'} font-medium rounded-lg dark:bg-[#242424] text-sm px-4 py-2.5 inline-flex items-center justify-between w-full border-[1.8px] dark:border-[#3c3c3c] focus:border-blue-600 ${
-          disabled ? 'opacity-50 cursor-not-allowed' : ''
+        className={`${
+          value ? "dark:text-white" : "dark:text-gray-400"
+        } font-medium rounded-lg dark:bg-[#242424] text-sm px-4 py-2.5 inline-flex items-center justify-between w-full border-[1.8px] dark:border-[#3c3c3c] focus:border-blue-600 ${
+          disabled ? "opacity-50 cursor-not-allowed" : ""
         }`}
         type="button"
         onClick={() => !disabled && setIsOpen((isOpen) => !isOpen)}
         disabled={disabled}
       >
-        {value || label}{" "}
+        {value ? itemLabel(value) : label}{" "}
         <svg
           className="w-2.5 h-2.5"
           aria-hidden="true"
@@ -69,8 +74,8 @@ export default function DropDownMenu({ list, label = "Select", value = "", onCha
           className="h-48 py-2 overflow-y-auto text-gray-700 dark:text-gray-200"
           aria-labelledby="dropdownUsersButton"
         >
-          {list.map((item) => (
-            <li key={item}>
+          {list?.map((item) => (
+            <li key={itemLabel(item)}>
               <button
                 type="button"
                 className="flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white w-full text-left"
@@ -79,7 +84,7 @@ export default function DropDownMenu({ list, label = "Select", value = "", onCha
                   setIsOpen(false);
                 }}
               >
-                {item}
+                {itemLabel(item)}
               </button>
             </li>
           ))}
