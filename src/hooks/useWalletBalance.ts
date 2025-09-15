@@ -44,7 +44,7 @@ export const useWalletBalance = () => {
       try {
         if (!ethers.isAddress(walletAddress)) throw new Error("Invalid Ethereum address");
 
-        const targetDate = new Date(timestamp + "T23:59:59Z"); // End of day UTC
+        const targetDate = new Date(timestamp);
         const targetTimestamp = Math.floor(targetDate.getTime() / 1000);
         const blockNumber = await findBlockByTimestamp(asset.blockchain, targetTimestamp);
         const normalizedAddress = ethers.getAddress(walletAddress.toLowerCase());
@@ -66,7 +66,7 @@ export const useWalletBalance = () => {
                 to: asset.chainId,
                 data: edata,
               },
-              ethers.toBeHex(blockNumber),
+              `0x${blockNumber.toString(16)}`,
             ],
           }),
         });
