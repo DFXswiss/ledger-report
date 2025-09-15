@@ -116,7 +116,7 @@ export default function App() {
   async function onSubmit(data: FormData) {
     setError(undefined);
 
-    const { date, address, network, token, currency } = data;
+    const { date, address, network, token } = data;
 
     // Find the selected token in the asset map
     const selectedAsset = assetMap[network]?.find((asset) => asset.name === token);

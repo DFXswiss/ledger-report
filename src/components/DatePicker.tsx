@@ -18,7 +18,7 @@ export function DatePicker({
         id={id}
         {...register(id, { 
           required: `${label} is required`,
-          validate: (value) => {
+          validate: (value: string) => {
             const selectedDate = new Date(value);
             const today = new Date();
             today.setHours(23, 59, 59, 999); // End of today
