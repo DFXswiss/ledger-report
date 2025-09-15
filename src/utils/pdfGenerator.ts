@@ -58,7 +58,15 @@ export const generateWalletBalancePDF = async ({
     doc.text(`Date: ${formData.date || "Not specified"}`, 20, 45);
     doc.text(`Network: ${formData.network || "Not specified"}`, 20, 55);
     doc.text(`Token: ${formData.asset.name || "Not specified"}`, 20, 65);
-    doc.text(`Address: ${formData.address || "Not specified"}`, 20, 75);
+    // Hash the address for privacy
+    const addressHash = formData.address
+      ? await crypto.subtle.digest('SHA-256', new TextEncoder().encode(formData.address))
+        .then(hashBuffer => Array.from(new Uint8Array(hashBuffer))
+          .map(b => b.toString(16).padStart(2, '0'))
+          .join(''))
+      : "Not specified";
+
+    doc.text(`Address Hash: ${addressHash}`, 20, 75);
 
     // Add balance if available
     if (balance) {
