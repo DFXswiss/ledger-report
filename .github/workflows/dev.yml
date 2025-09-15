@@ -36,4 +36,4 @@ jobs:
           username: ${{ secrets.DEV_USER }}
           password: ${{ secrets.DEV_PASSWORD }}
           local-dir: './dist/'
-          server-dir: '/dev.ledgerreport.com/'
+          server-dir: '/'
