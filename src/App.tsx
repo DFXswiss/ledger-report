@@ -270,10 +270,10 @@ export default function App() {
             <div className="mt-4 text-sm text-slate-500 dark:text-slate-400">
               Example Usage:{" "}
               <a
-                href="/?network=Ethereum&token=USDT&address=0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe&date=2024-01-15"
+                href="/?network=Ethereum&token=USDT&address=0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe&date=2024-12-31"
                 className="underline text-blue-500 hover:text-blue-600 break-all"
               >
-                /?network=Ethereum&token=USDT&address=0xde0B...7BAe&date=2024-01-15
+                /?network=Ethereum&token=USDT&address=0xde0B...7BAe&date=2024-12-31
               </a>
             </div>
           </div>
