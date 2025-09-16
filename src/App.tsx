@@ -11,6 +11,7 @@ import { EvmBlockchain, type Asset, type EvmAsset } from "./types";
 import { useSearchParams } from "react-router-dom";
 import { useCurrencyPrice } from "./hooks/useCurrencyPrice";
 import { generateWalletBalancePDF } from "./utils/pdfGenerator";
+import { formatSwissNumber } from "./utils/formatNumber";
 
 type FormData = {
   date: string;
@@ -237,9 +238,9 @@ export default function App() {
                 </div>
                 {prices && (
                   <div className="mt-2">
-                    {selectedCurrency === "USD" && `≈ ${(parseFloat(balance) * prices.usd).toFixed(2)} USD`}
-                    {selectedCurrency === "EUR" && `≈ ${(parseFloat(balance) * prices.eur).toFixed(2)} EUR`}
-                    {selectedCurrency === "CHF" && `≈ ${(parseFloat(balance) * prices.chf).toFixed(2)} CHF`}
+                    {selectedCurrency === "USD" && `≈ ${formatSwissNumber(parseFloat(balance) * prices.usd)} USD`}
+                    {selectedCurrency === "EUR" && `≈ ${formatSwissNumber(parseFloat(balance) * prices.eur)} EUR`}
+                    {selectedCurrency === "CHF" && `≈ ${formatSwissNumber(parseFloat(balance) * prices.chf)} CHF`}
                   </div>
                 )}
               </div>
