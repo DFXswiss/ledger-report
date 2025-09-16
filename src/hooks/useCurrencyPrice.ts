@@ -41,6 +41,68 @@ export const useCurrencyPrice = () => {
     setResult({ prices: null, loading: true, error: null });
 
     try {
+      // Special handling for FPS token
+      const isFPS = contractAddress.toLowerCase() === "0x1ba26788dfde592fec8bcb0eaff472a42be341b2" && blockchain === "Ethereum";
+
+      if (isFPS) {
+        const formattedDate = formatDate(date);
+        const cacheKey = `price-fps-${formattedDate}`;
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          const cachedData = JSON.parse(cached);
+          setResult({ prices: cachedData, loading: false, error: null });
+          return cachedData;
+        }
+
+        // Fetch FPS price from Ponder
+        const dateObj = new Date(date + "T00:00:00Z");
+        const timestamp = Math.floor(dateObj.getTime() / 1000);
+
+        const fpsQuery = `{
+          equityTradeCharts(where: {timestamp_lte: "${timestamp}"}, orderBy: "timestamp", orderDirection: "desc", limit: 1) {
+            items { timestamp lastPrice }
+          }
+        }`;
+
+        const fpsResponse = await fetch("https://ponder.frankencoin.com", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: fpsQuery })
+        });
+
+        if (!fpsResponse.ok) throw new Error("Failed to fetch FPS price from Ponder");
+
+        const fpsData = await fpsResponse.json();
+        const fpsItems = fpsData?.data?.equityTradeCharts?.items;
+
+        if (!fpsItems || fpsItems.length === 0) {
+          throw new Error("No FPS price data available for this date");
+        }
+
+        // Price is in ZCHF with 18 decimals
+        const fpsPriceInZchf = BigInt(fpsItems[0].lastPrice);
+
+        // 1 ZCHF = 1 CHF
+        const fpsPriceInChf = parseFloat(fpsPriceInZchf.toString()) / 1e18;
+
+        // Fetch USD and EUR rates (approximate conversion from CHF)
+        // You might want to use a proper forex API here
+        const usdRate = 1.15; // Approximate CHF to USD
+        const eurRate = 1.05; // Approximate CHF to EUR
+
+        const priceData: PriceData = {
+          chf: fpsPriceInChf,
+          usd: fpsPriceInChf * usdRate,
+          eur: fpsPriceInChf * eurRate,
+        };
+
+        // Cache the result
+        localStorage.setItem(cacheKey, JSON.stringify(priceData));
+        setResult({ prices: priceData, loading: false, error: null });
+        return priceData;
+      }
+
+      // Original CoinGecko logic for other tokens
       const platform = platformMap[blockchain];
       if (!platform) throw new Error(`[CoinGecko] Unsupported blockchain: ${blockchain}`);
 
