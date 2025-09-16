@@ -11,6 +11,7 @@ import { EvmBlockchain, type Asset, type EvmAsset } from "./types";
 import { useSearchParams } from "react-router-dom";
 import { useCurrencyPrice } from "./hooks/useCurrencyPrice";
 import { generateWalletBalancePDF } from "./utils/pdfGenerator";
+import { formatSwissNumber } from "./utils/formatNumber";
 
 type FormData = {
   date: string;
@@ -42,7 +43,14 @@ export default function App() {
     setFocus,
     watch,
     setValue,
-  } = useForm<FormData>({ mode: "onChange", defaultValues: { currency: "USD" } });
+  } = useForm<FormData>({
+    mode: "onChange",
+    defaultValues: {
+      currency: "CHF",
+      network: EvmBlockchain.ETH,
+      date: "2024-12-31"
+    }
+  });
 
   watch(() => {
     setError(undefined);
@@ -65,6 +73,11 @@ export default function App() {
             return acc;
           }, {} as EvmAssetMap);
         setAssetMap(map);
+
+        // Set default asset for Ethereum if not already set
+        if (map[EvmBlockchain.ETH] && map[EvmBlockchain.ETH].length > 0 && !watch("asset")) {
+          setValue("asset", map[EvmBlockchain.ETH][0]);
+        }
       })
       .catch((error) => {
         console.error("Error fetching assets:", error);
@@ -213,8 +226,6 @@ export default function App() {
               }}
             />
 
-            {error && <div className="bg-red-200 text-red-500 p-2 rounded-md">{error}</div>}
-
             <Button
               label={balanceLoading || priceLoading ? "FETCHING DATA..." : "GET BALANCE"}
               onClick={handleValidationAndFocus}
@@ -237,17 +248,17 @@ export default function App() {
                 </div>
                 {prices && (
                   <div className="mt-2">
-                    {selectedCurrency === "USD" && `≈ ${(parseFloat(balance) * prices.usd).toFixed(2)} USD`}
-                    {selectedCurrency === "EUR" && `≈ ${(parseFloat(balance) * prices.eur).toFixed(2)} EUR`}
-                    {selectedCurrency === "CHF" && `≈ ${(parseFloat(balance) * prices.chf).toFixed(2)} CHF`}
+                    {selectedCurrency === "USD" && `≈ ${formatSwissNumber(parseFloat(balance) * prices.usd)} USD`}
+                    {selectedCurrency === "EUR" && `≈ ${formatSwissNumber(parseFloat(balance) * prices.eur)} EUR`}
+                    {selectedCurrency === "CHF" && `≈ ${formatSwissNumber(parseFloat(balance) * prices.chf)} CHF`}
                   </div>
                 )}
               </div>
             )}
 
-            {(balanceError || priceError) && (
+            {(balanceError || priceError || error) && (
               <div className="mt-2 p-2 rounded-md font-medium bg-red-200 text-red-500">
-                {balanceError || priceError}
+                {balanceError || priceError || error}
               </div>
             )}
 

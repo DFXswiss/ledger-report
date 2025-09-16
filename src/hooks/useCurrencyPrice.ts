@@ -41,6 +41,55 @@ export const useCurrencyPrice = () => {
     setResult({ prices: null, loading: true, error: null });
 
     try {
+      // Special handling for FPS token
+      const isFPS = contractAddress.toLowerCase() === "0x1ba26788dfde592fec8bcb0eaff472a42be341b2" && blockchain === "Ethereum";
+
+      if (isFPS) {
+        const formattedDate = formatDate(date);
+        const cacheKey = `price-fps-${formattedDate}`;
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          const cachedData = JSON.parse(cached);
+          setResult({ prices: cachedData, loading: false, error: null });
+          return cachedData;
+        }
+
+        // Read price directly from FPS smart contract
+        const { ethers } = await import('ethers');
+        const apiKey = import.meta.env.VITE_ALCHEMY_API_KEY || "YOUR_ALCHEMY_API_KEY";
+        const provider = new ethers.JsonRpcProvider(`https://eth-mainnet.g.alchemy.com/v2/${apiKey}`);
+        const abi = ['function price() public view returns (uint256)'];
+        const fpsContract = new ethers.Contract(contractAddress, abi, provider);
+        
+        // Get the price from the contract (returns uint256 with 18 decimals)
+        const priceRaw = await fpsContract.price();
+        const fpsPriceInChf = parseFloat(ethers.formatUnits(priceRaw, 18));
+
+        // Fetch current forex rates for CHF to USD/EUR
+        const forexResponse = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=usd,eur&vs_currencies=chf`);
+        let usdRate = 1.10; // Fallback CHF to USD
+        let eurRate = 1.03; // Fallback CHF to EUR
+
+        if (forexResponse.ok) {
+          const forexData = await forexResponse.json();
+          // CoinGecko returns USD/CHF and EUR/CHF, we need the inverse
+          if (forexData.usd?.chf) usdRate = 1 / forexData.usd.chf;
+          if (forexData.eur?.chf) eurRate = 1 / forexData.eur.chf;
+        }
+
+        const priceData: PriceData = {
+          chf: fpsPriceInChf,
+          usd: fpsPriceInChf * usdRate,
+          eur: fpsPriceInChf * eurRate,
+        };
+
+        // Cache the result
+        localStorage.setItem(cacheKey, JSON.stringify(priceData));
+        setResult({ prices: priceData, loading: false, error: null });
+        return priceData;
+      }
+
+      // Original CoinGecko logic for other tokens
       const platform = platformMap[blockchain];
       if (!platform) throw new Error(`[CoinGecko] Unsupported blockchain: ${blockchain}`);
 
