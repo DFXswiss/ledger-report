@@ -55,7 +55,7 @@ export const useCurrencyPrice = () => {
         }
 
         // Fetch FPS price from Ponder
-        const dateObj = new Date(date + "T00:00:00Z");
+        const dateObj = new Date(date + "T23:59:59Z");
         const timestamp = Math.floor(dateObj.getTime() / 1000);
 
         const fpsQuery = `{
@@ -85,10 +85,18 @@ export const useCurrencyPrice = () => {
         // 1 ZCHF = 1 CHF
         const fpsPriceInChf = parseFloat(fpsPriceInZchf.toString()) / 1e18;
 
-        // Fetch USD and EUR rates (approximate conversion from CHF)
-        // You might want to use a proper forex API here
-        const usdRate = 1.15; // Approximate CHF to USD
-        const eurRate = 1.05; // Approximate CHF to EUR
+        // Fetch current forex rates for CHF to USD/EUR
+        // Using approximate rates - in production should use a forex API
+        const forexResponse = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=usd,eur&vs_currencies=chf`);
+        let usdRate = 1.10; // Fallback CHF to USD
+        let eurRate = 1.03; // Fallback CHF to EUR
+
+        if (forexResponse.ok) {
+          const forexData = await forexResponse.json();
+          // CoinGecko returns USD/CHF and EUR/CHF, we need the inverse
+          if (forexData.usd?.chf) usdRate = 1 / forexData.usd.chf;
+          if (forexData.eur?.chf) eurRate = 1 / forexData.eur.chf;
+        }
 
         const priceData: PriceData = {
           chf: fpsPriceInChf,
