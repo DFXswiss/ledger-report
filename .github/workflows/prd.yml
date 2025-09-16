@@ -32,10 +32,11 @@ jobs:
           VITE_ALCHEMY_API_KEY: ${{ secrets.VITE_ALCHEMY_API_KEY }}
 
       - name: Deploy to hosting
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.PRD_HOST }}
           username: ${{ secrets.PRD_USER }}
           password: ${{ secrets.PRD_PASSWORD }}
           local-dir: './dist/'
           server-dir: '/'
+          dangerous-clean-slate: true
