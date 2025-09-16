@@ -54,39 +54,18 @@ export const useCurrencyPrice = () => {
           return cachedData;
         }
 
-        // Fetch FPS price from Ponder
-        const dateObj = new Date(date + "T23:59:59Z");
-        const timestamp = Math.floor(dateObj.getTime() / 1000);
-
-        const fpsQuery = `{
-          equityTradeCharts(where: {timestamp_lte: "${timestamp}"}, orderBy: "timestamp", orderDirection: "desc", limit: 1) {
-            items { timestamp lastPrice }
-          }
-        }`;
-
-        const fpsResponse = await fetch("https://ponder.frankencoin.com", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: fpsQuery })
-        });
-
-        if (!fpsResponse.ok) throw new Error("Failed to fetch FPS price from Ponder");
-
-        const fpsData = await fpsResponse.json();
-        const fpsItems = fpsData?.data?.equityTradeCharts?.items;
-
-        if (!fpsItems || fpsItems.length === 0) {
-          throw new Error("No FPS price data available for this date");
-        }
-
-        // Price is in ZCHF with 18 decimals
-        const fpsPriceInZchf = BigInt(fpsItems[0].lastPrice);
-
-        // 1 ZCHF = 1 CHF
-        const fpsPriceInChf = parseFloat(fpsPriceInZchf.toString()) / 1e18;
+        // Read price directly from FPS smart contract
+        const { ethers } = await import('ethers');
+        const apiKey = import.meta.env.VITE_ALCHEMY_API_KEY || "YOUR_ALCHEMY_API_KEY";
+        const provider = new ethers.JsonRpcProvider(`https://eth-mainnet.g.alchemy.com/v2/${apiKey}`);
+        const abi = ['function price() public view returns (uint256)'];
+        const fpsContract = new ethers.Contract(contractAddress, abi, provider);
+        
+        // Get the price from the contract (returns uint256 with 18 decimals)
+        const priceRaw = await fpsContract.price();
+        const fpsPriceInChf = parseFloat(ethers.formatUnits(priceRaw, 18));
 
         // Fetch current forex rates for CHF to USD/EUR
-        // Using approximate rates - in production should use a forex API
         const forexResponse = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=usd,eur&vs_currencies=chf`);
         let usdRate = 1.10; // Fallback CHF to USD
         let eurRate = 1.03; // Fallback CHF to EUR

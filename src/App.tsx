@@ -226,8 +226,6 @@ export default function App() {
               }}
             />
 
-            {error && <div className="bg-red-200 text-red-500 p-2 rounded-md">{error}</div>}
-
             <Button
               label={balanceLoading || priceLoading ? "FETCHING DATA..." : "GET BALANCE"}
               onClick={handleValidationAndFocus}
@@ -258,9 +256,9 @@ export default function App() {
               </div>
             )}
 
-            {(balanceError || priceError) && (
+            {(balanceError || priceError || error) && (
               <div className="mt-2 p-2 rounded-md font-medium bg-red-200 text-red-500">
-                {balanceError || priceError}
+                {balanceError || priceError || error}
               </div>
             )}
 
