@@ -38,4 +38,4 @@ jobs:
           username: ${{ secrets.PRD_USER }}
           password: ${{ secrets.PRD_PASSWORD }}
           local-dir: './dist/'
-          server-dir: '/ledgerreport.com/'
+          server-dir: '/'
