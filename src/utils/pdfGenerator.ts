@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import type { EvmAsset } from "../types";
+import { formatSwissNumber } from "./formatNumber";
 
 const hashAddress = async (address: string): Promise<string> => {
   const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(address));
@@ -100,10 +101,10 @@ export const generateWalletBalancePDF = async ({
       if (prices) {
         const currencyValue =
           selectedCurrency === "USD"
-            ? `${(parseFloat(balance) * prices.usd).toFixed(2)}`
+            ? formatSwissNumber(parseFloat(balance) * prices.usd)
             : selectedCurrency === "EUR"
-            ? `${(parseFloat(balance) * prices.eur).toFixed(2)}`
-            : `${(parseFloat(balance) * prices.chf).toFixed(2)}`;
+            ? formatSwissNumber(parseFloat(balance) * prices.eur)
+            : formatSwissNumber(parseFloat(balance) * prices.chf);
 
         doc.text("In CHF:", labelX, dataStartY + 60);
         doc.text(currencyValue, valueX, dataStartY + 60);
