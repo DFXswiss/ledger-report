@@ -69,7 +69,7 @@ export const generateWalletBalancePDF = async ({
     // Add report details with proper tabbed formatting
     const dataStartY = startY + 12.5;
     const labelX = 20;      // X position for labels
-    const valueX = 60;      // X position for values (aligned column)
+    const valueX = 45;      // X position for values (aligned column)
 
     doc.setFontSize(12);
     doc.setFont("helvetica", "normal");
@@ -85,8 +85,8 @@ export const generateWalletBalancePDF = async ({
     doc.text(formData.asset.name || "Not specified", valueX, dataStartY + 20);
 
     // Hash the address for privacy
-    const addressHash = (await hashAddress(formData.address)).substring(0, 16);
-    doc.text("Address Hash:", labelX, dataStartY + 30);
+    const addressHash = await hashAddress(formData.address);
+    doc.text("Address:", labelX, dataStartY + 30);
     doc.text(addressHash, valueX, dataStartY + 30);
 
     // Add balance if available
