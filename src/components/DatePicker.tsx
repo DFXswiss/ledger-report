@@ -16,12 +16,11 @@ export function DatePicker({
       <input
         type="date"
         id={id}
-        {...register(id, { 
+        {...register(id, {
           required: `${label} is required`,
           validate: (value: string) => {
             const selectedDate = new Date(value);
             const today = new Date();
-            today.setHours(23, 59, 59, 999); // End of today
             return selectedDate <= today || "Date cannot be in the future";
           }
         })}
