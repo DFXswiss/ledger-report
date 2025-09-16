@@ -42,7 +42,14 @@ export default function App() {
     setFocus,
     watch,
     setValue,
-  } = useForm<FormData>({ mode: "onChange", defaultValues: { currency: "USD" } });
+  } = useForm<FormData>({
+    mode: "onChange",
+    defaultValues: {
+      currency: "CHF",
+      network: EvmBlockchain.ETH,
+      date: "2024-12-31"
+    }
+  });
 
   watch(() => {
     setError(undefined);
@@ -65,6 +72,11 @@ export default function App() {
             return acc;
           }, {} as EvmAssetMap);
         setAssetMap(map);
+
+        // Set default asset for Ethereum if not already set
+        if (map[EvmBlockchain.ETH] && map[EvmBlockchain.ETH].length > 0 && !watch("asset")) {
+          setValue("asset", map[EvmBlockchain.ETH][0]);
+        }
       })
       .catch((error) => {
         console.error("Error fetching assets:", error);
