@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import type { EvmAsset } from "../types";
+import type { SupportedAsset } from "../types";
 import { formatSwissNumber } from "./formatNumber";
 
 const hashAddress = async (address: string): Promise<string> => {
@@ -13,7 +13,7 @@ interface PDFParams {
   formData: {
     date: string;
     network: string;
-    asset: EvmAsset;
+    asset: SupportedAsset;
     address: string;
   };
   balance: string | null;

@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import type { EvmBlockchain } from "../types";
+import { NonEvmBlockchain, isBtcBlockchain, type Blockchain } from "../types";
 
 interface PriceData {
   usd: number;
@@ -14,12 +14,12 @@ interface CurrencyPriceResult {
 }
 
 interface FetchPriceParams {
-  contractAddress: string;
-  blockchain: EvmBlockchain;
+  contractAddress?: string;
+  blockchain: Blockchain;
   date: string;
 }
 
-// Map blockchain names to CoinGecko platform IDs
+// Map blockchain names to CoinGecko platform IDs (EVM only — BTC handled separately)
 const platformMap: Record<string, string> = {
   Ethereum: "ethereum",
   BinanceSmartChain: "binance-smart-chain",
@@ -28,6 +28,11 @@ const platformMap: Record<string, string> = {
   Optimism: "optimistic-ethereum",
   Base: "base",
   Gnosis: "xdai",
+};
+
+// Map blockchain names to CoinGecko coin IDs for native-coin price lookups
+const nativeCoinMap: Partial<Record<Blockchain, string>> = {
+  [NonEvmBlockchain.BTC]: "bitcoin",
 };
 
 export const useCurrencyPrice = () => {
@@ -41,11 +46,43 @@ export const useCurrencyPrice = () => {
     setResult({ prices: null, loading: true, error: null });
 
     try {
-      // Special handling for FPS token
+      const formattedDate = formatDate(date);
+
+      // Native-coin path (e.g. BTC) — no contract, use /coins/{id}/history
+      if (!contractAddress || isBtcBlockchain(blockchain)) {
+        const coinId = nativeCoinMap[blockchain];
+        if (!coinId) throw new Error(`[CoinGecko] No native coin id for blockchain: ${blockchain}`);
+
+        const cacheKey = `price-coin-${coinId}-${formattedDate}`;
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          const cachedData = JSON.parse(cached);
+          setResult({ prices: cachedData, loading: false, error: null });
+          return cachedData;
+        }
+
+        const url = `https://api.coingecko.com/api/v3/coins/${coinId}/history?date=${formattedDate}`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Failed to fetch ${coinId} price for ${formattedDate}`);
+
+        const data = await response.json();
+        if (!data.market_data?.current_price) throw new Error("Historical price data not available");
+
+        const priceData: PriceData = {
+          usd: data.market_data.current_price.usd || 0,
+          eur: data.market_data.current_price.eur || 0,
+          chf: data.market_data.current_price.chf || 0,
+        };
+
+        localStorage.setItem(cacheKey, JSON.stringify(priceData));
+        setResult({ prices: priceData, loading: false, error: null });
+        return priceData;
+      }
+
+      // Special handling for FPS token (price() on smart contract, denominated in CHF)
       const isFPS = contractAddress.toLowerCase() === "0x1ba26788dfde592fec8bcb0eaff472a42be341b2" && blockchain === "Ethereum";
 
       if (isFPS) {
-        const formattedDate = formatDate(date);
         const cacheKey = `price-fps-${formattedDate}`;
         const cached = localStorage.getItem(cacheKey);
         if (cached) {
@@ -54,25 +91,19 @@ export const useCurrencyPrice = () => {
           return cachedData;
         }
 
-        // Read price directly from FPS smart contract
-        const { ethers } = await import('ethers');
+        const { ethers } = await import("ethers");
         const apiKey = import.meta.env.VITE_ALCHEMY_API_KEY || "YOUR_ALCHEMY_API_KEY";
         const provider = new ethers.JsonRpcProvider(`https://eth-mainnet.g.alchemy.com/v2/${apiKey}`);
-        const abi = ['function price() public view returns (uint256)'];
+        const abi = ["function price() public view returns (uint256)"];
         const fpsContract = new ethers.Contract(contractAddress, abi, provider);
-        
-        // Get the price from the contract (returns uint256 with 18 decimals)
         const priceRaw = await fpsContract.price();
         const fpsPriceInChf = parseFloat(ethers.formatUnits(priceRaw, 18));
 
-        // Fetch current forex rates for CHF to USD/EUR
         const forexResponse = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=usd,eur&vs_currencies=chf`);
-        let usdRate = 1.10; // Fallback CHF to USD
-        let eurRate = 1.03; // Fallback CHF to EUR
-
+        let usdRate = 1.10;
+        let eurRate = 1.03;
         if (forexResponse.ok) {
           const forexData = await forexResponse.json();
-          // CoinGecko returns USD/CHF and EUR/CHF, we need the inverse
           if (forexData.usd?.chf) usdRate = 1 / forexData.usd.chf;
           if (forexData.eur?.chf) eurRate = 1 / forexData.eur.chf;
         }
@@ -83,17 +114,15 @@ export const useCurrencyPrice = () => {
           eur: fpsPriceInChf * eurRate,
         };
 
-        // Cache the result
         localStorage.setItem(cacheKey, JSON.stringify(priceData));
         setResult({ prices: priceData, loading: false, error: null });
         return priceData;
       }
 
-      // Original CoinGecko logic for other tokens
+      // CoinGecko ERC-20 / EVM-token path
       const platform = platformMap[blockchain];
       if (!platform) throw new Error(`[CoinGecko] Unsupported blockchain: ${blockchain}`);
 
-      const formattedDate = formatDate(date);
       const cacheKey = `price-${contractAddress}-${formattedDate}`;
       const cached = localStorage.getItem(cacheKey);
       if (cached) {
@@ -133,7 +162,6 @@ export const useCurrencyPrice = () => {
         };
       }
 
-      // Cache the result
       localStorage.setItem(cacheKey, JSON.stringify(priceData));
       setResult({ prices: priceData, loading: false, error: null });
       return priceData;

@@ -7,7 +7,14 @@ import { Button } from "./components/Button";
 import { DatePicker } from "./components/DatePicker";
 import DropDownMenu from "./components/DropDownMenu";
 import { useWalletBalance } from "./hooks/useWalletBalance";
-import { EvmBlockchain, type Asset, type EvmAsset } from "./types";
+import {
+  EvmBlockchain,
+  NonEvmBlockchain,
+  isSupportedBlockchain,
+  type Asset,
+  type Blockchain,
+  type SupportedAsset,
+} from "./types";
 import { useSearchParams } from "react-router-dom";
 import { useCurrencyPrice } from "./hooks/useCurrencyPrice";
 import { generateWalletBalancePDF } from "./utils/pdfGenerator";
@@ -15,18 +22,23 @@ import { formatSwissNumber } from "./utils/formatNumber";
 
 type FormData = {
   date: string;
-  network: EvmBlockchain;
-  asset: EvmAsset;
+  network: Blockchain;
+  asset: SupportedAsset;
   address: string;
   currency: string;
 };
 
-type EvmAssetMap = Record<EvmBlockchain, EvmAsset[]>;
+type AssetMap = Record<Blockchain, SupportedAsset[]>;
+
+const SUPPORTED_NETWORKS: Blockchain[] = [
+  ...Object.values(EvmBlockchain),
+  ...Object.values(NonEvmBlockchain),
+];
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | undefined>();
-  const [assetMap, setAssetMap] = useState<EvmAssetMap | undefined>();
+  const [assetMap, setAssetMap] = useState<AssetMap | undefined>();
 
   const [urlParams] = useSearchParams();
 
@@ -48,8 +60,8 @@ export default function App() {
     defaultValues: {
       currency: "CHF",
       network: EvmBlockchain.ETH,
-      date: "2024-12-31"
-    }
+      date: "2024-12-31",
+    },
   });
 
   watch(() => {
@@ -66,12 +78,13 @@ export default function App() {
       .then((response) => response.json())
       .then((data: Asset[]) => {
         const map = data
-          .filter((asset): asset is EvmAsset => isEvmBlockchain(asset.blockchain))
+          .filter((asset): asset is SupportedAsset => isSupportedBlockchain(asset.blockchain))
           .reduce((acc, asset) => {
-            if (!acc[asset.blockchain]) acc[asset.blockchain] = [];
-            acc[asset.blockchain].push(asset);
+            const key = asset.blockchain as Blockchain;
+            if (!acc[key]) acc[key] = [];
+            acc[key].push(asset);
             return acc;
-          }, {} as EvmAssetMap);
+          }, {} as AssetMap);
         setAssetMap(map);
 
         // Set default asset for Ethereum if not already set
@@ -97,19 +110,29 @@ export default function App() {
     const networkParam = urlParams.get("network");
     if (!networkParam) return;
 
-    if (isEvmBlockchain(networkParam)) {
+    if (isSupportedBlockchain(networkParam)) {
       setValue("network", networkParam);
     } else {
       setError(`Unsupported network in URL parameter: ${networkParam}`);
     }
   }, [urlParams]);
 
+  // Keep the selected asset in sync with the selected network.
+  // Without this, switching networks via URL param or programmatically
+  // would leave an asset from the previous network in the form.
+  useEffect(() => {
+    if (!assetMap || !selectedNetwork) return;
+    if (selectedAsset && selectedAsset.blockchain === selectedNetwork) return;
+    const first = assetMap[selectedNetwork]?.[0];
+    if (first) setValue("asset", first);
+  }, [assetMap, selectedNetwork, selectedAsset]);
+
   useEffect(() => {
     const tokenParam = urlParams.get("token");
     if (!tokenParam) return;
 
     const matchedAsset =
-      selectedNetwork && assetMap && assetMap[selectedNetwork].find((asset) => asset.name === tokenParam);
+      selectedNetwork && assetMap && assetMap[selectedNetwork]?.find((asset) => asset.name === tokenParam);
     if (matchedAsset) {
       setValue("asset", matchedAsset);
     } else {
@@ -117,29 +140,22 @@ export default function App() {
     }
   }, [urlParams, assetMap, selectedNetwork]);
 
-  const isEvmBlockchain = (blockchain: string): blockchain is EvmBlockchain =>
-    Object.values(EvmBlockchain).includes(blockchain as EvmBlockchain);
-
   async function onSubmit(data: FormData) {
     setError(undefined);
     const { date, address, network, asset } = data;
 
     try {
-      // Fetch balance
       await fetchBalance({
-        asset: asset,
+        asset,
         walletAddress: address,
         timestamp: date,
       });
 
-      // Fetch price
-      if (selectedAsset.chainId) {
-        await fetchPrice({
-          contractAddress: selectedAsset.chainId,
-          blockchain: network,
-          date,
-        });
-      }
+      await fetchPrice({
+        contractAddress: asset.chainId,
+        blockchain: network,
+        date,
+      });
     } catch (error: any) {
       setError(error.toString());
     }
@@ -194,9 +210,9 @@ export default function App() {
       ) : (
         <form>
           <div className="flex flex-col gap-4">
-            <DropDownMenu<EvmBlockchain>
+            <DropDownMenu<Blockchain>
               label="Network"
-              list={Object.values(EvmBlockchain)}
+              list={SUPPORTED_NETWORKS.filter((n) => assetMap[n]?.length)}
               itemLabel={(item) => item}
               value={selectedNetwork}
               onChange={(value) => {
@@ -204,15 +220,15 @@ export default function App() {
                 setValue("asset", assetMap?.[value]?.[0]);
               }}
             />
-            <DropDownMenu<EvmAsset>
+            <DropDownMenu<SupportedAsset>
               label="Token"
-              list={selectedNetwork ? assetMap[selectedNetwork] : []}
+              list={selectedNetwork ? assetMap[selectedNetwork] ?? [] : []}
               itemLabel={(item) => item.name}
               value={selectedAsset}
               onChange={(value) => {
                 setValue("asset", value);
               }}
-              disabled={!selectedNetwork}
+              disabled={!selectedNetwork || (assetMap[selectedNetwork]?.length ?? 0) <= 1}
             />
             <InputField id="address" label="Address" register={register} errors={errors} />
             <DatePicker id="date" label="Date" register={register} errors={errors} />
@@ -234,12 +250,14 @@ export default function App() {
               isGrayedOut={!isValid}
             />
 
-            {balance && !balanceLoading && !priceLoading && <Button
-              label="GENERATE PDF"
-              onClick={generatePDF}
-              disabled={false}
-              isGrayedOut={!isValid}
-            />}
+            {balance && !balanceLoading && !priceLoading && (
+              <Button
+                label="GENERATE PDF"
+                onClick={generatePDF}
+                disabled={false}
+                isGrayedOut={!isValid}
+              />
+            )}
 
             {balance && !balanceLoading && !priceLoading && (
               <div className="mt-2 p-4 rounded-md border border-green-200 bg-green-200 text-green-800">
