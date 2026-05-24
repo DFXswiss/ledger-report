@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { NonEvmBlockchain, isBtcBlockchain, type Blockchain } from "../types";
+import { getEstvBtcChf } from "../utils/estvTaxValues";
 
 interface PriceData {
   usd: number;
@@ -56,7 +57,11 @@ export const useCurrencyPrice = () => {
         const cacheKey = `price-coin-${coinId}-${formattedDate}`;
         const cached = localStorage.getItem(cacheKey);
         if (cached) {
-          const cachedData = JSON.parse(cached);
+          const cachedData: PriceData = JSON.parse(cached);
+          if (isBtcBlockchain(blockchain)) {
+            const estvChf = getEstvBtcChf(date);
+            if (estvChf !== undefined) cachedData.chf = estvChf;
+          }
           setResult({ prices: cachedData, loading: false, error: null });
           return cachedData;
         }
@@ -73,6 +78,14 @@ export const useCurrencyPrice = () => {
           eur: data.market_data.current_price.eur || 0,
           chf: data.market_data.current_price.chf || 0,
         };
+
+        // For BTC, override the CHF value with the official ESTV tax valuation
+        // when one is available for the requested record date. The Swiss wealth
+        // tax declaration uses ESTV's ICTax rate, not a market-aggregator price.
+        if (isBtcBlockchain(blockchain)) {
+          const estvChf = getEstvBtcChf(date);
+          if (estvChf !== undefined) priceData.chf = estvChf;
+        }
 
         localStorage.setItem(cacheKey, JSON.stringify(priceData));
         setResult({ prices: priceData, loading: false, error: null });
