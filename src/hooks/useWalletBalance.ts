@@ -8,6 +8,7 @@ import {
   isEvmBlockchain,
   type SupportedAsset,
 } from "../types";
+import { formatTokenAmount } from "../utils/formatNumber";
 
 interface BalanceResult {
   balance: string | null;
@@ -117,8 +118,13 @@ async function fetchEvmBalance(
   const data = await response.json();
   if (data.error) throw new Error(`RPC error: ${data.error.message}`);
 
-  const balanceFormatted = ethers.formatUnits(data.result, asset.decimals ?? 18);
-  return parseFloat(balanceFormatted).toFixed(6);
+  if (asset.decimals === undefined || asset.decimals === null) {
+    throw new Error(
+      `Asset ${asset.name} on ${asset.blockchain} has no decimals — please report this on GitHub.`,
+    );
+  }
+  const balanceFormatted = ethers.formatUnits(data.result, asset.decimals);
+  return formatTokenAmount(balanceFormatted);
 }
 
 async function findEvmBlockByTimestamp(blockchain: EvmBlockchain, targetTimestamp: number): Promise<number> {
@@ -264,7 +270,7 @@ async function fetchBitcoinBalance(walletAddress: string, targetTimestamp: numbe
   }
 
   const btc = satsBalance / 10 ** BTC_DECIMALS;
-  return btc.toFixed(BTC_DECIMALS);
+  return formatTokenAmount(btc.toFixed(BTC_DECIMALS));
 }
 
 async function findBtcBlockByTimestamp(targetTimestamp: number): Promise<number> {
