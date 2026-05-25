@@ -114,7 +114,7 @@ export function OutputPanel({
         </div>
       </div>
       {errorMessage && (
-        <p className="mt-3 rounded-md bg-red-200 px-3 py-2 text-sm font-medium text-red-700">
+        <p className="mt-3 rounded-md bg-red-200 px-3 py-2 text-sm font-medium text-red-800">
           {errorMessage}
         </p>
       )}

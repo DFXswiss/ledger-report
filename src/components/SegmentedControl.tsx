@@ -42,7 +42,7 @@ export function SegmentedControl<T extends string>({
             : "text-xs font-medium leading-4";
         const colors = active
           ? "bg-brand-100 text-brand-800"
-          : "text-neutral-500 hover:bg-neutral-150";
+          : "text-neutral-700 hover:bg-neutral-150";
 
         return (
           <button
