@@ -192,13 +192,16 @@ export default function App() {
 
   // Keep the selected asset in sync with the selected network — the URL-param
   // effect above only writes `network`, so we have to mirror the dropdown's
-  // onChange behaviour here.
+  // onChange behaviour here. Skip this when a token URL param is present so
+  // the token-param effect can write the final value without an intermediate
+  // pickNativeAsset() flicker.
   useEffect(() => {
     if (!assetMap || !selectedNetwork) return;
+    if (urlParams.has("token")) return;
     if (selectedAsset && selectedAsset.blockchain === selectedNetwork) return;
     const candidates = assetMap[selectedNetwork];
     if (candidates?.length) setValue("asset", pickNativeAsset(candidates));
-  }, [assetMap, selectedNetwork, selectedAsset]);
+  }, [assetMap, selectedNetwork, selectedAsset, urlParams]);
 
   async function onSubmit(data: FormData) {
     setError(undefined);
