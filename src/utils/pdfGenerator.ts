@@ -219,7 +219,7 @@ export const generateWalletBalancePDF = async ({
     `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ` +
     `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 
-  doc.text("Generated with LedgerReport — Wallet Balance Reports for Tax, Audit, and Accounting", 20, pageHeight - 20);
+  doc.text("Generated with LedgerReport.com — Wallet Balance Reports for Tax, Audit, and Accounting", 20, pageHeight - 20);
   doc.text(`Generated on: ${generatedOn}`, 20, pageHeight - 15);
 
   // Save the PDF. Filename keeps ISO YYYY-MM-DD because that's the right
