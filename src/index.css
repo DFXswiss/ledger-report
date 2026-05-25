@@ -69,7 +69,10 @@ body {
   [data-print="hide"],
   /* Hide any SectionRow that wraps a segmented control (Blockchain row,
    * Currency row) — the heading would otherwise sit above an empty area. */
-  div:has(> div > [data-print="hide"]) {
+  div:has(> div > [data-print="hide"]),
+  /* Hide the Get balance / Generate PDF action buttons — interactive chrome
+   * is noise on a printed tax-report page. */
+  form button[type="button"] {
     display: none !important;
   }
 
