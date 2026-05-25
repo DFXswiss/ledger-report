@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { NonEvmBlockchain, isBtcBlockchain, type Blockchain } from "../types";
 import { getEstvBtcChf } from "../utils/estvTaxValues";
 import { cacheKey } from "../utils/cacheKey";
+import { blockchainLabel } from "../utils/blockchainLabel";
 
 interface PriceData {
   usd: number;
@@ -67,7 +68,7 @@ export const useCurrencyPrice = () => {
       // Native-coin path (e.g. BTC) — no contract, use /coins/{id}/history
       if (!contractAddress || isBtcBlockchain(blockchain)) {
         const coinId = nativeCoinMap[blockchain];
-        if (!coinId) throw new Error(`[CoinGecko] No native coin id for blockchain: ${blockchain}`);
+        if (!coinId) throw new Error(`[CoinGecko] No native coin id for blockchain: ${blockchainLabel(blockchain)}`);
 
         const key = cacheKey(["price-coin", coinId, formattedDate]);
         const cached = localStorage.getItem(key);
@@ -154,7 +155,7 @@ export const useCurrencyPrice = () => {
 
       // CoinGecko ERC-20 / EVM-token path
       const platform = platformMap[blockchain];
-      if (!platform) throw new Error(`[CoinGecko] Unsupported blockchain: ${blockchain}`);
+      if (!platform) throw new Error(`[CoinGecko] Unsupported blockchain: ${blockchainLabel(blockchain)}`);
 
       const key = cacheKey(["price", contractAddress, formattedDate]);
       const cached = localStorage.getItem(key);

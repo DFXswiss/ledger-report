@@ -10,6 +10,7 @@ import {
 } from "../types";
 import { formatTokenAmount } from "../utils/formatNumber";
 import { cacheKey } from "../utils/cacheKey";
+import { blockchainLabel } from "../utils/blockchainLabel";
 
 interface BalanceResult {
   balance: string | null;
@@ -126,7 +127,7 @@ async function fetchEvmBalance(
 
   if (!response.ok) {
     throw new Error(
-      `Alchemy ${response.status} on ${blockchain}: ${response.statusText || "request failed"}`,
+      `Alchemy ${response.status} on ${blockchainLabel(blockchain)}: ${response.statusText || "request failed"}`,
     );
   }
 
@@ -135,7 +136,7 @@ async function fetchEvmBalance(
 
   if (asset.decimals === undefined || asset.decimals === null) {
     throw new Error(
-      `Asset ${asset.name} on ${asset.blockchain} has no decimals — please report this on GitHub.`,
+      `Asset ${asset.name} on ${blockchainLabel(blockchain)} has no decimals — please report this on GitHub.`,
     );
   }
   const balanceFormatted = ethers.formatUnits(data.result, asset.decimals);
@@ -153,7 +154,7 @@ async function findEvmBlockByTimestamp(blockchain: EvmBlockchain, targetTimestam
 
   const currentBlock = await getEvmCurrentBlockNumber(blockchain);
   if (isNaN(currentBlock) || currentBlock <= 0) {
-    throw new Error(`Invalid current block number for ${blockchain}`);
+    throw new Error(`Invalid current block number for ${blockchainLabel(blockchain)}`);
   }
 
   let low = 1;
@@ -165,7 +166,7 @@ async function findEvmBlockByTimestamp(blockchain: EvmBlockchain, targetTimestam
     const blockTimestamp = await getEvmBlockTimestamp(blockchain, mid);
 
     if (isNaN(blockTimestamp)) {
-      throw new Error(`Failed to get timestamp for block ${mid} on ${blockchain}`);
+      throw new Error(`Failed to get timestamp for block ${mid} on ${blockchainLabel(blockchain)}`);
     }
 
     if (blockTimestamp <= targetTimestamp) {
@@ -188,7 +189,7 @@ async function getEvmCurrentBlockNumber(blockchain: EvmBlockchain): Promise<numb
   });
   if (!response.ok) {
     throw new Error(
-      `Alchemy ${response.status} on ${blockchain}: ${response.statusText || "request failed"}`,
+      `Alchemy ${response.status} on ${blockchainLabel(blockchain)}: ${response.statusText || "request failed"}`,
     );
   }
   const data = await response.json();
@@ -211,7 +212,7 @@ async function getEvmBlockTimestamp(blockchain: EvmBlockchain, blockNumber: numb
   });
   if (!response.ok) {
     throw new Error(
-      `Alchemy ${response.status} on ${blockchain}: ${response.statusText || "request failed"}`,
+      `Alchemy ${response.status} on ${blockchainLabel(blockchain)}: ${response.statusText || "request failed"}`,
     );
   }
   const data = await response.json();
