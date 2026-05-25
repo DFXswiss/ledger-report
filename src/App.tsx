@@ -72,7 +72,7 @@ export default function App() {
     mode: "onChange",
     defaultValues: {
       currency: "CHF",
-      network: EvmBlockchain.ETH,
+      network: NonEvmBlockchain.BTC,
       date: "2024-12-31",
     },
   });
@@ -101,11 +101,12 @@ export default function App() {
           }, {});
         setAssetMap(map);
 
-        // Prefer the network's native coin as the default token (the API order
-        // on Ethereum has DFI first which would surprise first-time users).
-        const ethAssets = map[EvmBlockchain.ETH];
-        if (ethAssets?.length && !watch("asset")) {
-          setValue("asset", pickNativeAsset(ethAssets));
+        // Pick the default asset for the form's default network (Bitcoin).
+        // pickNativeAsset() prefers the chain's native coin so first-time
+        // visitors land on BTC rather than an arbitrary first list entry.
+        const defaultNetworkAssets = map[NonEvmBlockchain.BTC];
+        if (defaultNetworkAssets?.length && !watch("asset")) {
+          setValue("asset", pickNativeAsset(defaultNetworkAssets));
         }
       })
       .catch((err) => {
