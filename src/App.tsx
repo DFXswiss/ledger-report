@@ -52,6 +52,19 @@ function pickNativeAsset(assets: SupportedAsset[]): SupportedAsset {
   return assets.find((a) => a.type === "Coin") ?? assets[0];
 }
 
+// Order assets the way the DFX backend marks them as important: sortOrder
+// ascending (1..9 are the curated mainstream tokens, 99 is the bulk), name
+// alphabetical for ties. The raw API order otherwise puts DFI in front of
+// ETH on Ethereum, which is surprising in a tax-report context.
+function sortAssetsByDfxOrder(assets: SupportedAsset[]): SupportedAsset[] {
+  return [...assets].sort((a, b) => {
+    const sa = a.sortOrder ?? Number.MAX_SAFE_INTEGER;
+    const sb = b.sortOrder ?? Number.MAX_SAFE_INTEGER;
+    if (sa !== sb) return sa - sb;
+    return a.name.localeCompare(b.name);
+  });
+}
+
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | undefined>();
@@ -99,6 +112,9 @@ export default function App() {
             acc[key]!.push(asset);
             return acc;
           }, {});
+        for (const key of Object.keys(map) as Blockchain[]) {
+          map[key] = sortAssetsByDfxOrder(map[key]!);
+        }
         setAssetMap(map);
 
         // Pick the default asset for the form's default network (Bitcoin).
