@@ -47,7 +47,10 @@ export const useWalletBalance = () => {
     error: null,
   });
 
-  const reset = () => setResult({ balance: null, loading: false, error: null });
+  const reset = useCallback(
+    () => setResult({ balance: null, loading: false, error: null }),
+    [],
+  );
 
   const fetchBalance = useCallback(async ({ asset, walletAddress, timestamp }: FetchBalanceParams) => {
     setResult({ balance: null, loading: true, error: null });
