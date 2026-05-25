@@ -23,9 +23,8 @@ export function Footer() {
             Source
           </a>
         </nav>
-        <p className="max-w-md text-xs leading-5 text-neutral-300 sm:text-right">
-          Address never stored. Data is queried on-demand from Alchemy, mempool.space,
-          and CoinGecko.
+        <p className="text-xs leading-5 text-neutral-300 sm:text-right lg:whitespace-nowrap">
+          Address never stored. Data is queried on-demand from Alchemy, mempool.space, and CoinGecko.
         </p>
       </div>
     </footer>
