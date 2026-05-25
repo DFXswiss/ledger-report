@@ -76,7 +76,7 @@ export function OutputPanel({
             // Preserve the same height as the resolved state (3xl line +
             // lg line) so the panel doesn't jump when results arrive.
             <>
-              <p className="text-base font-medium leading-10 text-brand-800/70">
+              <p className="text-base font-medium leading-10 text-brand-800">
                 Click Get balance to fetch the balance.
               </p>
               <p className="text-lg leading-6 tracking-tight">&nbsp;</p>
