@@ -118,11 +118,11 @@ export const generateWalletBalancePDF = async ({
 
       // Add title left-aligned below the brand strip.
       doc.setFontSize(20);
-      doc.text("Wallet Balance Report", 20, brandTopY + logomarkHeightMm + 16);
+      doc.text("Wallet Balance Report for Tax, Audit, and Accounting", 20, brandTopY + logomarkHeightMm + 16);
     } catch (logoError) {
       console.warn("Logo failed, continuing without:", logoError);
       doc.setFontSize(20);
-      doc.text("Wallet Balance Report", 20, 30);
+      doc.text("Wallet Balance Report for Tax, Audit, and Accounting", 20, 30);
     }
 
     // Determine starting Y position based on whether logo loaded
@@ -205,7 +205,7 @@ export const generateWalletBalancePDF = async ({
       `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ` +
       `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 
-    doc.text("Data generated with LedgerReport.com - Historical Wallet Balance Checker", 20, pageHeight - 20);
+    doc.text("Generated with LedgerReport — Wallet Balance Reports for Tax, Audit, and Accounting", 20, pageHeight - 20);
     doc.text(`Generated on: ${generatedOn}`, 20, pageHeight - 15);
 
     // Save the PDF
