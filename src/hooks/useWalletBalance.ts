@@ -319,7 +319,16 @@ async function fetchBitcoinBalance(walletAddress: string, targetTimestamp: numbe
   return formatTokenAmount(btc.toFixed(BTC_DECIMALS));
 }
 
+// Bitcoin genesis block timestamp (2009-01-03 18:15:05 UTC). Any earlier
+// timestamp can't resolve to a real block; Esplora answers with a 500 and
+// the raw status code leaked into the UI before this client-side check.
+const BTC_GENESIS_TIMESTAMP = 1230940800;
+
 async function findBtcBlockByTimestamp(targetTimestamp: number): Promise<number> {
+  if (targetTimestamp < BTC_GENESIS_TIMESTAMP) {
+    throw new Error("Date is before Bitcoin existed");
+  }
+
   const key = cacheKey(["block", NonEvmBlockchain.BTC, targetTimestamp]);
   const cached = localStorage.getItem(key);
   if (cached) {
