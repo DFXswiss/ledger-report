@@ -105,7 +105,9 @@ export default function App() {
     defaultValues: {
       currency: "CHF",
       network: NonEvmBlockchain.BTC,
-      date: "2024-12-31",
+      // Default to 31 December of the previous year — the wealth-tax record
+      // date in Switzerland, which is the primary use case for this tool.
+      date: `${new Date().getFullYear() - 1}-12-31`,
     },
   });
 
