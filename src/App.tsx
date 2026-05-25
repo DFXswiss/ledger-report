@@ -325,7 +325,7 @@ export default function App() {
           Example:{" "}
           <a
             href="/?network=Ethereum&token=USDT&address=0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe&date=2024-12-31"
-            className="break-all rounded-sm text-brand-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+            className="break-all rounded-sm text-brand-800 underline underline-offset-2 decoration-brand-800/50 hover:decoration-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
           >
             /?network=Ethereum&amp;token=USDT&amp;address=0xde0B…&amp;date=2024-12-31
           </a>
