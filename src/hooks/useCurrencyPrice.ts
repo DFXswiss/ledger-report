@@ -36,6 +36,20 @@ const nativeCoinMap: Partial<Record<Blockchain, string>> = {
   [NonEvmBlockchain.BTC]: "bitcoin",
 };
 
+// Pull a fiat-priced field from a CoinGecko response shape and throw if the
+// field is missing or non-numeric. We refuse to ship 0 as a placeholder —
+// see the pricing-correctness rule: a stale or swapped value is worse than
+// a clear error, so we surface the missing field to the user instead.
+type PriceLookup = Record<string, number | null | undefined>;
+
+function requirePrice(source: PriceLookup, key: "usd" | "eur" | "chf", subject: string): number {
+  const value = source[key];
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error(`[CoinGecko] Response for ${subject} missing ${key.toUpperCase()} price`);
+  }
+  return value;
+}
+
 export const useCurrencyPrice = () => {
   const [result, setResult] = useState<CurrencyPriceResult>({
     prices: null,
@@ -74,9 +88,9 @@ export const useCurrencyPrice = () => {
         if (!data.market_data?.current_price) throw new Error("Historical price data not available");
 
         const priceData: PriceData = {
-          usd: data.market_data.current_price.usd || 0,
-          eur: data.market_data.current_price.eur || 0,
-          chf: data.market_data.current_price.chf || 0,
+          usd: requirePrice(data.market_data.current_price, "usd", coinId),
+          eur: requirePrice(data.market_data.current_price, "eur", coinId),
+          chf: requirePrice(data.market_data.current_price, "chf", coinId),
         };
 
         // For BTC, override the CHF value with the official ESTV tax valuation
@@ -113,13 +127,18 @@ export const useCurrencyPrice = () => {
         const fpsPriceInChf = parseFloat(ethers.formatUnits(priceRaw, 18));
 
         const forexResponse = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=usd,eur&vs_currencies=chf`);
-        let usdRate = 1.10;
-        let eurRate = 1.03;
-        if (forexResponse.ok) {
-          const forexData = await forexResponse.json();
-          if (forexData.usd?.chf) usdRate = 1 / forexData.usd.chf;
-          if (forexData.eur?.chf) eurRate = 1 / forexData.eur.chf;
+        if (!forexResponse.ok) {
+          throw new Error("[CoinGecko] Failed to fetch USD/EUR→CHF forex rates for FPS conversion");
         }
+        const forexData = await forexResponse.json();
+        if (forexData.usd?.chf == null) {
+          throw new Error("[CoinGecko] FPS forex response missing usd→chf rate");
+        }
+        if (forexData.eur?.chf == null) {
+          throw new Error("[CoinGecko] FPS forex response missing eur→chf rate");
+        }
+        const usdRate = 1 / forexData.usd.chf;
+        const eurRate = 1 / forexData.eur.chf;
 
         const priceData: PriceData = {
           chf: fpsPriceInChf,
@@ -158,9 +177,9 @@ export const useCurrencyPrice = () => {
         if (!tokenData) throw new Error("Token price not found");
 
         priceData = {
-          usd: tokenData.usd || 0,
-          eur: tokenData.eur || 0,
-          chf: tokenData.chf || 0,
+          usd: requirePrice(tokenData, "usd", contractAddress),
+          eur: requirePrice(tokenData, "eur", contractAddress),
+          chf: requirePrice(tokenData, "chf", contractAddress),
         };
       } else {
         const data = await response.json();
@@ -169,9 +188,9 @@ export const useCurrencyPrice = () => {
         }
 
         priceData = {
-          usd: data.market_data.current_price.usd || 0,
-          eur: data.market_data.current_price.eur || 0,
-          chf: data.market_data.current_price.chf || 0,
+          usd: requirePrice(data.market_data.current_price, "usd", contractAddress),
+          eur: requirePrice(data.market_data.current_price, "eur", contractAddress),
+          chf: requirePrice(data.market_data.current_price, "chf", contractAddress),
         };
       }
 
