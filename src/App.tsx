@@ -100,10 +100,16 @@ export default function App() {
     },
   });
 
-  watch(() => {
-    setError(undefined);
-    reset();
-  });
+  // Clear any previous balance + error whenever the form changes. watch()
+  // returns a subscription, so we run it inside useEffect with a cleanup to
+  // avoid leaking subscribers on every render.
+  useEffect(() => {
+    const subscription = watch(() => {
+      setError(undefined);
+      reset();
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, reset]);
 
   const selectedNetwork = watch("network");
   const selectedAsset = watch("asset");
