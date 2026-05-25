@@ -14,7 +14,7 @@ export function Footer() {
             &middot;
           </span>
           <a
-            href="https://github.com/DFXswiss/ledger-report"
+            href="https://github.com/ledgerreport/app"
             target="_blank"
             rel="noreferrer noopener"
             className={`inline-flex items-center gap-2 font-bold ${linkClass}`}
