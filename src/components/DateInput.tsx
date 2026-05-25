@@ -5,19 +5,21 @@ interface Props {
   register: UseFormRegister<any>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   errors: FieldErrors<any>;
+  ariaLabelledBy?: string;
 }
 
-export function DateInput({ register, errors }: Props) {
+export function DateInput({ register, errors, ariaLabelledBy }: Props) {
   const hasError = Boolean(errors.date);
   return (
     <div className="w-full">
       <div
-        className={`relative flex h-11 items-center rounded-xl border ${
+        className={`relative flex h-11 items-center rounded-xl border bg-white pl-3 pr-3 py-2.5 focus-within:ring-2 focus-within:ring-brand focus-within:ring-offset-2 ${
           hasError ? "border-red-500" : "border-brand-200"
-        } bg-white pl-3 pr-3 py-2.5`}
+        }`}
       >
         <input
           type="date"
+          aria-labelledby={ariaLabelledBy}
           {...register("date", {
             required: "Date is required",
             validate: (value: string) => {

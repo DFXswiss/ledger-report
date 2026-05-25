@@ -56,7 +56,7 @@ export function OutputPanel({
             type="button"
             onClick={onSubmit}
             disabled={!canSubmit || isFetching}
-            className={`flex items-center justify-center gap-1.5 overflow-clip rounded-md p-4 text-base font-semibold text-white ${
+            className={`flex items-center justify-center gap-1.5 overflow-clip rounded-md p-4 text-base font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 ${
               canSubmit && !isFetching
                 ? "bg-brand cursor-pointer hover:opacity-90"
                 : "bg-brand/60 cursor-not-allowed"
@@ -69,7 +69,7 @@ export function OutputPanel({
             type="button"
             onClick={onGeneratePdf}
             disabled={!hasBalance || isFetching}
-            className={`flex items-center justify-center overflow-clip rounded-md border-[1.5px] p-4 text-base font-semibold ${
+            className={`flex items-center justify-center overflow-clip rounded-md border-[1.5px] p-4 text-base font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 ${
               hasBalance
                 ? "border-brand text-brand cursor-pointer hover:bg-brand-100"
                 : "border-neutral-300 text-neutral-300 cursor-not-allowed"

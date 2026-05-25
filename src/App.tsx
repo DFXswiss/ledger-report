@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useSearchParams } from "react-router-dom";
 
@@ -79,6 +79,15 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | undefined>();
   const [assetMap, setAssetMap] = useState<AssetMap | undefined>();
+
+  // Section-heading IDs let us bind each form control to its label via
+  // aria-labelledby — keyboard and screen-reader users get a proper
+  // association instead of a free-floating h2 sitting next to an unrelated
+  // input.
+  const blockchainHeadingId = useId();
+  const tokenHeadingId = useId();
+  const dateHeadingId = useId();
+  const currencyHeadingId = useId();
 
   const [urlParams] = useSearchParams();
 
@@ -260,35 +269,36 @@ export default function App() {
           >
             <WalletAddressInput register={register} errors={errors} setValue={setValue} />
 
-            <SectionRow title="Blockchain" variant="first">
+            <SectionRow title="Blockchain" variant="first" headingId={blockchainHeadingId}>
               <SegmentedControl<Blockchain>
                 options={availableNetworks.map((n) => ({ value: n, label: blockchainLabel(n) }))}
                 value={selectedNetwork}
                 onChange={(value) => setValue("network", value)}
-                ariaLabel="Blockchain"
+                ariaLabelledBy={blockchainHeadingId}
               />
             </SectionRow>
 
-            <SectionRow title="Token">
+            <SectionRow title="Token" headingId={tokenHeadingId}>
               <TokenSelect
                 options={selectedNetwork ? assetMap[selectedNetwork] ?? [] : []}
                 value={selectedAsset}
                 onChange={(value) => setValue("asset", value)}
                 disabled={!selectedNetwork || (assetMap[selectedNetwork]?.length ?? 0) <= 1}
+                ariaLabelledBy={tokenHeadingId}
               />
             </SectionRow>
 
-            <SectionRow title="Balance Date">
-              <DateInput register={register} errors={errors} />
+            <SectionRow title="Balance Date" headingId={dateHeadingId}>
+              <DateInput register={register} errors={errors} ariaLabelledBy={dateHeadingId} />
             </SectionRow>
 
-            <SectionRow title="Currency" variant="last">
+            <SectionRow title="Currency" variant="last" headingId={currencyHeadingId}>
               <SegmentedControl<FormData["currency"]>
                 options={CURRENCIES.map((c) => ({ value: c, label: c }))}
                 value={selectedCurrency}
                 onChange={(value) => setValue("currency", value)}
                 layout="equal"
-                ariaLabel="Currency"
+                ariaLabelledBy={currencyHeadingId}
               />
             </SectionRow>
 

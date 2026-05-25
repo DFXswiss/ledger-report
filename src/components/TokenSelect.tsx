@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { SupportedAsset } from "../types";
 import { TokenGlyph } from "./TokenGlyph";
 
@@ -7,11 +7,31 @@ interface Props {
   value: SupportedAsset | undefined;
   onChange: (value: SupportedAsset) => void;
   disabled?: boolean;
+  ariaLabelledBy?: string;
 }
 
-export function TokenSelect({ options, value, onChange, disabled }: Props) {
+export function TokenSelect({ options, value, onChange, disabled, ariaLabelledBy }: Props) {
   const [open, setOpen] = useState(false);
+  const [highlightIndex, setHighlightIndex] = useState<number>(() =>
+    value ? Math.max(0, options.findIndex((o) => o.id === value.id)) : 0,
+  );
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const listboxId = useId();
+
+  // When the dropdown opens, anchor the highlight on the current value (or
+  // the first option) and scroll it into view.
+  useEffect(() => {
+    if (!open) return;
+    const initial = value
+      ? Math.max(0, options.findIndex((o) => o.id === value.id))
+      : 0;
+    setHighlightIndex(initial);
+    queueMicrotask(() => {
+      optionRefs.current[initial]?.focus();
+    });
+  }, [open, options, value]);
 
   useEffect(() => {
     const onClickOutside = (event: MouseEvent) => {
@@ -21,13 +41,70 @@ export function TokenSelect({ options, value, onChange, disabled }: Props) {
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, [open]);
 
+  const select = (option: SupportedAsset) => {
+    onChange(option);
+    setOpen(false);
+    triggerRef.current?.focus();
+  };
+
+  const moveHighlight = (delta: number) => {
+    if (options.length === 0) return;
+    setHighlightIndex((prev) => {
+      const next = (prev + delta + options.length) % options.length;
+      optionRefs.current[next]?.focus();
+      return next;
+    });
+  };
+
+  const onTriggerKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (disabled) return;
+    if (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      setOpen(true);
+    }
+  };
+
+  const onListKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    switch (event.key) {
+      case "Escape":
+        event.preventDefault();
+        setOpen(false);
+        triggerRef.current?.focus();
+        break;
+      case "ArrowDown":
+        event.preventDefault();
+        moveHighlight(1);
+        break;
+      case "ArrowUp":
+        event.preventDefault();
+        moveHighlight(-1);
+        break;
+      case "Home":
+        event.preventDefault();
+        setHighlightIndex(0);
+        optionRefs.current[0]?.focus();
+        break;
+      case "End":
+        event.preventDefault();
+        setHighlightIndex(options.length - 1);
+        optionRefs.current[options.length - 1]?.focus();
+        break;
+    }
+  };
+
   return (
     <div ref={ref} className="relative w-full">
       <button
+        ref={triggerRef}
         type="button"
         disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={open ? listboxId : undefined}
+        aria-labelledby={ariaLabelledBy}
         onClick={() => !disabled && setOpen((o) => !o)}
-        className={`flex h-11 w-full items-center justify-between rounded-xl border border-brand-200 bg-brand-100 px-3 py-2.5 ${
+        onKeyDown={onTriggerKeyDown}
+        className={`flex h-11 w-full items-center justify-between rounded-xl border border-brand-200 bg-brand-100 px-3 py-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 ${
           disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
         }`}
       >
@@ -43,21 +120,37 @@ export function TokenSelect({ options, value, onChange, disabled }: Props) {
         />
       </button>
       {open && (
-        <div className="absolute top-12 z-50 max-h-72 w-full overflow-auto rounded-xl border border-brand-200 bg-white py-1 shadow-lg">
-          {options.map((option) => (
-            <button
-              key={option.id}
-              type="button"
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-base text-neutral-900 hover:bg-brand-100"
-              onClick={() => {
-                onChange(option);
-                setOpen(false);
-              }}
-            >
-              <TokenGlyph name={option.name} className="size-5" />
-              {option.name}
-            </button>
-          ))}
+        <div
+          id={listboxId}
+          role="listbox"
+          aria-labelledby={ariaLabelledBy}
+          onKeyDown={onListKeyDown}
+          className="absolute top-12 z-50 max-h-72 w-full overflow-auto rounded-xl border border-brand-200 bg-white py-1 shadow-lg"
+        >
+          {options.map((option, index) => {
+            const isSelected = value?.id === option.id;
+            const isHighlighted = index === highlightIndex;
+            return (
+              <button
+                key={option.id}
+                ref={(el) => {
+                  optionRefs.current[index] = el;
+                }}
+                type="button"
+                role="option"
+                aria-selected={isSelected}
+                tabIndex={isHighlighted ? 0 : -1}
+                className={`flex w-full items-center gap-2 px-3 py-2 text-left text-base text-neutral-900 focus-visible:outline-none focus-visible:bg-brand-100 ${
+                  isHighlighted ? "bg-brand-100" : "hover:bg-brand-100"
+                }`}
+                onClick={() => select(option)}
+                onMouseEnter={() => setHighlightIndex(index)}
+              >
+                <TokenGlyph name={option.name} className="size-5" />
+                {option.name}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
