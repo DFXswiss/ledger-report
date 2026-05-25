@@ -55,7 +55,7 @@ export const generateWalletBalancePDF = async ({
       doc.setFontSize(20);
       doc.text("Wallet Balance Report for Tax Purposes", 20, 100);
     } catch (logoError) {
-      console.log("Logo failed, continuing without:", logoError);
+      console.warn("Logo failed, continuing without:", logoError);
       doc.setFontSize(20);
       doc.text("Wallet Balance Report for Tax Purposes", 20, 30);
     }
@@ -67,58 +67,64 @@ export const generateWalletBalancePDF = async ({
     doc.setLineWidth(0.5);
     doc.line(20, startY, pageWidth - 20, startY);
 
-    // Add report details with proper tabbed formatting
-    const dataStartY = startY + 12.5;
+    // Layout: a running Y cursor that advances per row. Adding or removing
+    // rows here is a single insertion — no need to recompute every following
+    // offset.
     const labelX = 20;      // X position for labels
     const valueX = 60;      // X position for values (aligned column)
+    const rowGap = 10;      // vertical distance between successive rows
+    let y = startY + 12.5;
 
     doc.setFontSize(12);
     doc.setFont("helvetica", "normal");
 
     // Print labels and values separately for perfect alignment
-    doc.text("Date:", labelX, dataStartY);
-    doc.text(formData.date || "Not specified", valueX, dataStartY);
+    doc.text("Date:", labelX, y);
+    doc.text(formData.date || "Not specified", valueX, y);
+    y += rowGap;
 
-    doc.text("Network:", labelX, dataStartY + 10);
-    doc.text(formData.network || "Not specified", valueX, dataStartY + 10);
+    doc.text("Network:", labelX, y);
+    doc.text(formData.network || "Not specified", valueX, y);
+    y += rowGap;
 
-    doc.text("Token:", labelX, dataStartY + 20);
-    doc.text(formData.asset.name || "Not specified", valueX, dataStartY + 20);
+    doc.text("Token:", labelX, y);
+    doc.text(formData.asset.name || "Not specified", valueX, y);
+    y += rowGap;
 
     // Hash the address for privacy
     const addressHash = (await hashAddress(formData.address)).substring(0, 16);
-    doc.text("Address Hash:", labelX, dataStartY + 30);
-    doc.text(addressHash, valueX, dataStartY + 30);
+    doc.text("Address Hash:", labelX, y);
+    doc.text(addressHash, valueX, y);
+    y += rowGap * 2; // extra spacer before the balance block
 
     // Add balance if available
     if (balance) {
       doc.setFont(undefined, "bold");
-      doc.text("Balance:", labelX, dataStartY + 50);
-      doc.text(`${balance} ${formData.asset.name || "tokens"}`, valueX, dataStartY + 50);
+      doc.text("Balance:", labelX, y);
+      doc.text(`${balance} ${formData.asset.name || "tokens"}`, valueX, y);
       doc.setFont(undefined, "normal");
+      y += rowGap;
 
       // Add currency value if prices are available
       if (prices) {
-        const currencyValue =
-          selectedCurrency === "USD"
-            ? formatSwissNumber(parseFloat(balance) * prices.usd)
-            : selectedCurrency === "EUR"
-            ? formatSwissNumber(parseFloat(balance) * prices.eur)
-            : formatSwissNumber(parseFloat(balance) * prices.chf);
+        const currency = selectedCurrency.toLowerCase() as keyof typeof prices;
+        const rate = prices[currency];
+        const currencyValue = formatSwissNumber(parseFloat(balance) * rate);
 
-        doc.text("In CHF:", labelX, dataStartY + 60);
-        doc.text(currencyValue, valueX, dataStartY + 60);
+        doc.text(`In ${selectedCurrency}:`, labelX, y);
+        doc.text(currencyValue, valueX, y);
+        y += rowGap;
       }
     } else {
       doc.setFont(undefined, "bold");
-      doc.text("Balance:", labelX, dataStartY + 50);
-      doc.text("Not yet fetched", valueX, dataStartY + 50);
+      doc.text("Balance:", labelX, y);
+      doc.text("Not yet fetched", valueX, y);
       doc.setFont(undefined, "normal");
+      y += rowGap;
     }
 
     // Add horizontal line below data section
-    const dataEndY = prices && balance ? dataStartY + 70 : dataStartY + 60;
-    doc.line(20, dataEndY, pageWidth - 20, dataEndY);
+    doc.line(20, y, pageWidth - 20, y);
 
     // Add footer at the bottom of the page
     const pageHeight = doc.internal.pageSize.getHeight();

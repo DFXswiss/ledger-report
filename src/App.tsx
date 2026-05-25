@@ -204,7 +204,7 @@ export default function App() {
       });
     } catch (e) {
       console.error("PDF generation failed:", e);
-      alert(`Failed to generate PDF: ${e}`);
+      setError(e instanceof Error ? e.message : `Failed to generate PDF: ${String(e)}`);
     }
   };
 
