@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { LoadingSpinner } from "./LoadingSpinner";
 import { formatSwissNumber } from "../utils/formatNumber";
 import type { Currency } from "../types";
@@ -44,10 +45,16 @@ export function OutputPanel({
       ? formatSwissNumber(parseFloat(balance) * fiatValue)
       : null;
   const canGeneratePdf = hasBalance && hasPrices;
+  const headingId = useId();
 
   return (
-    <section className="w-full rounded-2xl bg-brand-100 px-5 pb-5 pt-6">
-      <h2 className="px-2.5 text-xl font-semibold leading-7 text-black">Token Balance</h2>
+    <section
+      aria-labelledby={headingId}
+      className="w-full rounded-2xl bg-brand-100 px-5 pb-5 pt-6"
+    >
+      <h2 id={headingId} className="px-2.5 text-xl font-semibold leading-7 text-black">
+        Token Balance
+      </h2>
       <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-3">
         <div className="flex min-w-0 flex-1 flex-col overflow-clip break-all rounded-lg px-2.5 py-1 text-brand-800">
           {hasBalance ? (

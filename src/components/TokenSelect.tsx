@@ -101,7 +101,11 @@ export function TokenSelect({ options, value, onChange, disabled, ariaLabelledBy
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? listboxId : undefined}
-        aria-labelledby={ariaLabelledBy}
+        // The visible text is the token name (e.g. "BTC"), so the accessible
+        // name has to include it to satisfy WCAG SC 2.5.3 (label in name).
+        // The section heading still labels the listbox below via
+        // aria-labelledby on the role=listbox container.
+        aria-label={`Token: ${value?.name ?? "Select token"}`}
         onClick={() => !disabled && setOpen((o) => !o)}
         onKeyDown={onTriggerKeyDown}
         className={`flex h-11 w-full items-center justify-between rounded-xl border border-brand-200 bg-brand-100 px-3 py-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 ${
@@ -138,7 +142,11 @@ export function TokenSelect({ options, value, onChange, disabled, ariaLabelledBy
                 }}
                 type="button"
                 role="option"
-                aria-selected={isSelected}
+                // selection-follows-focus pattern: announce the
+                // keyboard-focused option as selected too, so SR users hear
+                // a consistent selection state while arrow-keying through
+                // the list.
+                aria-selected={isSelected || isHighlighted}
                 tabIndex={isHighlighted ? 0 : -1}
                 className={`flex w-full items-center gap-2 px-3 py-2 text-left text-base text-neutral-900 focus-visible:outline-none focus-visible:bg-brand-100 ${
                   isHighlighted ? "bg-brand-100" : "hover:bg-brand-100"
