@@ -49,11 +49,17 @@ const CURRENCIES: FormData["currency"][] = ["CHF", "EUR", "USD"];
 
 // Pick the native coin from a per-chain asset list. The DFX API tags native
 // assets with type "Coin" (ETH on Ethereum, BTC on Bitcoin, etc.) — these are
-// the tokens a first-time visitor expects to see selected. Falls back to the
-// first entry if no native coin is present, e.g. on a chain that the DFX API
-// only exposes as tokens.
+// the tokens a first-time visitor expects to see selected. We refuse to fall
+// back to an arbitrary first entry: if a supported chain ever ships without a
+// native coin in the asset list it's a data bug we want to surface, not paper
+// over with a silently-wrong default selection.
 function pickNativeAsset(assets: SupportedAsset[]): SupportedAsset {
-  return assets.find((a) => a.type === "Coin") ?? assets[0];
+  const native = assets.find((a) => a.type === "Coin");
+  if (!native) {
+    const chain = assets[0]?.blockchain ?? "(empty list)";
+    throw new Error(`No native coin found for chain ${chain}`);
+  }
+  return native;
 }
 
 // Order assets the way the DFX backend marks them as important: sortOrder
@@ -193,7 +199,12 @@ export default function App() {
     if (urlParams.has("token")) return;
     if (selectedAsset && selectedAsset.blockchain === selectedNetwork) return;
     const candidates = assetMap[selectedNetwork];
-    if (candidates?.length) setValue("asset", pickNativeAsset(candidates));
+    if (!candidates?.length) return;
+    try {
+      setValue("asset", pickNativeAsset(candidates));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
   }, [assetMap, selectedNetwork, selectedAsset, urlParams]);
 
   async function onSubmit(data: FormData) {
