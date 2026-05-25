@@ -93,7 +93,12 @@ export function TokenSelect({ options, value, onChange, disabled, ariaLabelledBy
   };
 
   return (
-    <div ref={ref} className="relative w-full">
+    // data-print="hide" hides the entire Token SectionRow on print via the
+    // `div:has(> div > [data-print="hide"])` rule in src/index.css. Without
+    // it the "Token" heading would sit orphaned above an empty area because
+    // the print sheet already hides `form button[type="button"]` (the
+    // dropdown trigger).
+    <div ref={ref} data-print="hide" className="relative w-full">
       <button
         ref={triggerRef}
         type="button"
