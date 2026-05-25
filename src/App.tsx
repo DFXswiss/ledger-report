@@ -257,7 +257,10 @@ export default function App() {
         {isLoading ? (
           <div className="py-12 text-neutral-500">Loading…</div>
         ) : !assetMap ? (
-          <div className="py-12 text-neutral-500">No assets available</div>
+          // UX-display label resolution (not a silent data fallback): show
+          // the real error message from the asset fetch when we have one,
+          // otherwise the generic empty-state copy.
+          <div className="py-12 text-neutral-700">{error ? error : "No assets available"}</div>
         ) : (
           <form
             className="w-full max-w-[660px] overflow-clip rounded-3xl bg-white"
