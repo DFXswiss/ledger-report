@@ -25,6 +25,7 @@ export interface Asset {
   decimals?: number;
   type?: "Coin" | "Token";
   sortOrder?: number; // DFX display priority — 1..9 = curated assets, 99 = rest
+  comingSoon?: boolean; // DFX flags pre-launch tokens — we exclude these from the picker
 }
 
 export interface EvmAsset extends Asset {

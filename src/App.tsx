@@ -130,6 +130,7 @@ export default function App() {
       .then((response) => response.json())
       .then((data: Asset[]) => {
         const map: AssetMap = data
+          .filter((asset) => !asset.comingSoon)
           .filter((asset): asset is SupportedAsset => isSupportedBlockchain(asset.blockchain))
           .reduce((acc: AssetMap, asset) => {
             const key = asset.blockchain as Blockchain;
