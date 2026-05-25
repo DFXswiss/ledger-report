@@ -119,6 +119,12 @@ async function fetchEvmBalance(
     }),
   });
 
+  if (!response.ok) {
+    throw new Error(
+      `Alchemy ${response.status} on ${blockchain}: ${response.statusText || "request failed"}`,
+    );
+  }
+
   const data = await response.json();
   if (data.error) throw new Error(`RPC error: ${data.error.message}`);
 
@@ -175,6 +181,11 @@ async function getEvmCurrentBlockNumber(blockchain: EvmBlockchain): Promise<numb
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_blockNumber", params: [] }),
   });
+  if (!response.ok) {
+    throw new Error(
+      `Alchemy ${response.status} on ${blockchain}: ${response.statusText || "request failed"}`,
+    );
+  }
   const data = await response.json();
   if (data.error) throw new Error(`Failed to get current block number: ${data.error.message}`);
   const result = parseInt(data.result, 16);
@@ -193,6 +204,11 @@ async function getEvmBlockTimestamp(blockchain: EvmBlockchain, blockNumber: numb
       params: [`0x${blockNumber.toString(16)}`, false],
     }),
   });
+  if (!response.ok) {
+    throw new Error(
+      `Alchemy ${response.status} on ${blockchain}: ${response.statusText || "request failed"}`,
+    );
+  }
   const data = await response.json();
   if (data.error) throw new Error(`Failed to get block timestamp: ${data.error.message}`);
   if (!data.result || !data.result.timestamp) throw new Error("Invalid block response");
