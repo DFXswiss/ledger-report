@@ -164,10 +164,10 @@ export const generateWalletBalancePDF = async ({
 
     // Add balance if available
     if (balance) {
-      doc.setFont(undefined, "bold");
+      doc.setFont("helvetica", "bold");
       doc.text("Balance:", labelX, y);
       doc.text(`${balance} ${formData.asset.name || "tokens"}`, valueX, y);
-      doc.setFont(undefined, "normal");
+      doc.setFont("helvetica", "normal");
       y += rowGap;
 
       // Add currency value if prices are available
@@ -181,10 +181,10 @@ export const generateWalletBalancePDF = async ({
         y += rowGap;
       }
     } else {
-      doc.setFont(undefined, "bold");
+      doc.setFont("helvetica", "bold");
       doc.text("Balance:", labelX, y);
       doc.text("Not yet fetched", valueX, y);
-      doc.setFont(undefined, "normal");
+      doc.setFont("helvetica", "normal");
       y += rowGap;
     }
 
