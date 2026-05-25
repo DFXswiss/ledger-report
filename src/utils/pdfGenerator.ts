@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import type { SupportedAsset } from "../types";
+import type { Currency, SupportedAsset } from "../types";
 import { formatSwissNumber } from "./formatNumber";
 
 const hashAddress = async (address: string): Promise<string> => {
@@ -60,7 +60,7 @@ interface PDFParams {
     eur: number;
     chf: number;
   } | null;
-  selectedCurrency: string;
+  selectedCurrency: Currency;
 }
 
 export const generateWalletBalancePDF = async ({

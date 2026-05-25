@@ -21,6 +21,7 @@ import {
   isSupportedBlockchain,
   type Asset,
   type Blockchain,
+  type Currency,
   type SupportedAsset,
 } from "./types";
 
@@ -29,7 +30,7 @@ type FormData = {
   network: Blockchain;
   asset: SupportedAsset;
   address: string;
-  currency: "CHF" | "EUR" | "USD";
+  currency: Currency;
 };
 
 type AssetMap = Partial<Record<Blockchain, SupportedAsset[]>>;

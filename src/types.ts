@@ -1,3 +1,5 @@
+export type Currency = "CHF" | "EUR" | "USD";
+
 export enum EvmBlockchain {
   ETH = "Ethereum",
   BSC = "BinanceSmartChain",

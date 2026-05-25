@@ -1,11 +1,12 @@
 import { LoadingSpinner } from "./LoadingSpinner";
 import { formatSwissNumber } from "../utils/formatNumber";
+import type { Currency } from "../types";
 
 interface Props {
   tokenName: string;
   balance: string | null;
   prices: { usd: number; eur: number; chf: number } | null;
-  currency: "USD" | "EUR" | "CHF" | string;
+  currency: Currency;
   isFetching: boolean;
   canSubmit: boolean;
   onSubmit: () => void;
@@ -39,17 +40,26 @@ export function OutputPanel({
     <section className="w-full rounded-2xl bg-brand-100 px-5 pb-5 pt-6">
       <h2 className="px-2.5 text-xl font-semibold leading-7 text-black">Token Balance</h2>
       <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-3">
-        <div
-          className={`flex min-w-0 flex-1 flex-col overflow-clip break-all rounded-lg px-2.5 py-1 text-brand-800 ${
-            hasBalance ? "" : "opacity-30"
-          }`}
-        >
-          <p className="text-3xl font-semibold leading-10">
-            {hasBalance ? balance : "0.0"} {tokenName || ""}
-          </p>
-          <p className="text-lg font-semibold leading-6 tracking-tight">
-            ≈ {hasBalance ? fiatFormatted : "0.0"} {currency}
-          </p>
+        <div className="flex min-w-0 flex-1 flex-col overflow-clip break-all rounded-lg px-2.5 py-1 text-brand-800">
+          {hasBalance ? (
+            <>
+              <p className="text-3xl font-semibold leading-10">
+                {balance} {tokenName || ""}
+              </p>
+              <p className="text-lg font-semibold leading-6 tracking-tight">
+                ≈ {fiatFormatted} {currency}
+              </p>
+            </>
+          ) : (
+            // Preserve the same height as the resolved state (3xl line +
+            // lg line) so the panel doesn't jump when results arrive.
+            <>
+              <p className="text-base font-medium leading-10 text-brand-800/70">
+                Click Get balance to fetch the balance.
+              </p>
+              <p className="text-lg leading-6 tracking-tight">&nbsp;</p>
+            </>
+          )}
         </div>
         <div className="flex w-full shrink-0 flex-col gap-3 sm:w-[200px]">
           <button
