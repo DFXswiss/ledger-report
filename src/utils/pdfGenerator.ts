@@ -9,6 +9,44 @@ const hashAddress = async (address: string): Promise<string> => {
     .join('');
 };
 
+// Rasterise an SVG into a base64 PNG at the requested pixel dimensions.
+// We use this instead of jsPDF's addSvgAsImage / svg2pdf.js to avoid a new
+// dependency — the canvas/Image round-trip works in every modern browser and
+// gives a crisp result because we size the canvas to the final PDF size.
+const svgToPngDataUrl = async (
+  svgUrl: string,
+  pixelWidth: number,
+  pixelHeight: number,
+): Promise<string> => {
+  const response = await fetch(svgUrl);
+  if (!response.ok) {
+    throw new Error(`Failed to load SVG ${svgUrl}: ${response.status}`);
+  }
+  const svgText = await response.text();
+  const svgBlobUrl = URL.createObjectURL(
+    new Blob([svgText], { type: "image/svg+xml;charset=utf-8" }),
+  );
+
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error(`Image decode failed for ${svgUrl}`));
+      image.src = svgBlobUrl;
+    });
+
+    const canvas = document.createElement("canvas");
+    canvas.width = pixelWidth;
+    canvas.height = pixelHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas 2D context unavailable");
+    ctx.drawImage(img, 0, 0, pixelWidth, pixelHeight);
+    return canvas.toDataURL("image/png");
+  } finally {
+    URL.revokeObjectURL(svgBlobUrl);
+  }
+};
+
 interface PDFParams {
   formData: {
     date: string;
@@ -35,25 +73,51 @@ export const generateWalletBalancePDF = async ({
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
 
-    // Try to load and add logo
+    // Render the new LedgerReport brand: logomark on the left, wordmark on the
+    // right, centred together at the top of the page. SVG sources live in
+    // /assets so we rasterise them to PNG (canvas-based) before handing to
+    // jsPDF.
     try {
-      const logoResponse = await fetch("/ledger-logo.jpg");
-      const logoBlob = await logoResponse.blob();
-      const logoBase64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(logoBlob);
-      });
+      // Native aspect ratios pulled from the source SVG viewBoxes.
+      const logomarkAspect = 45.9736 / 41.7461;
+      const wordmarkAspect = 242.688 / 38.1413;
 
-      // Add logo centered at the top
-      const logoWidth = 40;
-      const logoHeight = 40;
-      const logoX = (pageWidth - logoWidth) / 2; // Center horizontally
-      doc.addImage(logoBase64, "JPEG", logoX, 30, logoWidth, logoHeight);
+      // Target PDF dimensions (mm). The wordmark drives the visual height;
+      // the logomark matches its height and computes its width from aspect.
+      const wordmarkHeightMm = 10;
+      const wordmarkWidthMm = wordmarkHeightMm * wordmarkAspect;
+      const logomarkHeightMm = 12;
+      const logomarkWidthMm = logomarkHeightMm * logomarkAspect;
+      const gapMm = 4;
 
-      // Add title left-aligned below the logo
+      const totalWidthMm = logomarkWidthMm + gapMm + wordmarkWidthMm;
+      const startX = (pageWidth - totalWidthMm) / 2;
+      const brandTopY = 28;
+      // The wordmark sits at the same optical centre as the logomark.
+      const wordmarkY = brandTopY + (logomarkHeightMm - wordmarkHeightMm) / 2;
+
+      // Rasterise at ~3x for crisp output on print zoom. mm × 2.83465 = points,
+      // and we want roughly 3x device pixels.
+      const px = (mm: number) => Math.round(mm * 11.81); // ≈ 300 DPI
+
+      const [logomarkPng, wordmarkPng] = await Promise.all([
+        svgToPngDataUrl("/assets/logo-logomark.svg", px(logomarkWidthMm), px(logomarkHeightMm)),
+        svgToPngDataUrl("/assets/logo-wordmark.svg", px(wordmarkWidthMm), px(wordmarkHeightMm)),
+      ]);
+
+      doc.addImage(logomarkPng, "PNG", startX, brandTopY, logomarkWidthMm, logomarkHeightMm);
+      doc.addImage(
+        wordmarkPng,
+        "PNG",
+        startX + logomarkWidthMm + gapMm,
+        wordmarkY,
+        wordmarkWidthMm,
+        wordmarkHeightMm,
+      );
+
+      // Add title left-aligned below the brand strip.
       doc.setFontSize(20);
-      doc.text("Wallet Balance Report for Tax Purposes", 20, 100);
+      doc.text("Wallet Balance Report for Tax Purposes", 20, brandTopY + logomarkHeightMm + 16);
     } catch (logoError) {
       console.warn("Logo failed, continuing without:", logoError);
       doc.setFontSize(20);
