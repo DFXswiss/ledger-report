@@ -51,3 +51,30 @@ body {
 #root {
   min-height: 100vh;
 }
+
+/* Print stylesheet — strip interactive chrome that's noise on paper.
+ *
+ * Hidden: the dark footer (links + branding), any element marked
+ * data-print="hide" (the blockchain/currency segmented controls), and
+ * the primary action buttons (button[type="button"]) inside the form —
+ * none of these mean anything on a printed tax-report page.
+ *
+ * Kept: wallet address, selected token, balance date, and the result
+ * panel — that's the information a user wants on a tax-report printout.
+ * The neutral page background is forced to white so we don't waste
+ * toner printing the dark surround.
+ */
+@media print {
+  footer,
+  [data-print="hide"],
+  /* Hide any SectionRow that wraps a segmented control (Blockchain row,
+   * Currency row) — the heading would otherwise sit above an empty area. */
+  div:has(> div > [data-print="hide"]) {
+    display: none !important;
+  }
+
+  body,
+  #root {
+    background: #ffffff !important;
+  }
+}

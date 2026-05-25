@@ -30,6 +30,7 @@ export function SegmentedControl<T extends string>({
       role="group"
       aria-label={ariaLabelledBy ? undefined : ariaLabel}
       aria-labelledby={ariaLabelledBy}
+      data-print="hide"
     >
       {options.map((option) => {
         const active = option.value === value;
