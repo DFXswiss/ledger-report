@@ -21,6 +21,8 @@ export interface Asset {
   blockchain: string;
   chainId?: string; // token contract address (EVM only)
   decimals?: number;
+  type?: "Coin" | "Token";
+  sortOrder?: number; // DFX display priority — 1..9 = curated assets, 99 = rest
 }
 
 export interface EvmAsset extends Asset {

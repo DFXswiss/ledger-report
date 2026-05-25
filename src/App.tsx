@@ -2,11 +2,21 @@ import "./App.css";
 
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { InputField } from "./components/InputField";
-import { Button } from "./components/Button";
-import { DatePicker } from "./components/DatePicker";
-import DropDownMenu from "./components/DropDownMenu";
+import { useSearchParams } from "react-router-dom";
+
+import { Logo } from "./components/Logo";
+import { Footer } from "./components/Footer";
+import { SegmentedControl } from "./components/SegmentedControl";
+import { SectionRow } from "./components/SectionRow";
+import { WalletAddressInput } from "./components/WalletAddressInput";
+import { TokenSelect } from "./components/TokenSelect";
+import { DateInput } from "./components/DateInput";
+import { OutputPanel } from "./components/OutputPanel";
+
 import { useWalletBalance } from "./hooks/useWalletBalance";
+import { useCurrencyPrice } from "./hooks/useCurrencyPrice";
+import { generateWalletBalancePDF } from "./utils/pdfGenerator";
+
 import {
   EvmBlockchain,
   NonEvmBlockchain,
@@ -15,25 +25,45 @@ import {
   type Blockchain,
   type SupportedAsset,
 } from "./types";
-import { useSearchParams } from "react-router-dom";
-import { useCurrencyPrice } from "./hooks/useCurrencyPrice";
-import { generateWalletBalancePDF } from "./utils/pdfGenerator";
-import { formatSwissNumber } from "./utils/formatNumber";
 
 type FormData = {
   date: string;
   network: Blockchain;
   asset: SupportedAsset;
   address: string;
-  currency: string;
+  currency: "CHF" | "EUR" | "USD";
 };
 
-type AssetMap = Record<Blockchain, SupportedAsset[]>;
+type AssetMap = Partial<Record<Blockchain, SupportedAsset[]>>;
 
 const SUPPORTED_NETWORKS: Blockchain[] = [
   ...Object.values(EvmBlockchain),
   ...Object.values(NonEvmBlockchain),
 ];
+
+const CURRENCIES: FormData["currency"][] = ["CHF", "EUR", "USD"];
+
+// Pick the native coin from a per-chain asset list. The DFX API tags native
+// assets with type "Coin" (ETH on Ethereum, BTC on Bitcoin, etc.) — these are
+// the tokens a first-time visitor expects to see selected. Falls back to the
+// first entry if no native coin is present, e.g. on a chain that the DFX API
+// only exposes as tokens.
+function pickNativeAsset(assets: SupportedAsset[]): SupportedAsset {
+  return assets.find((a) => a.type === "Coin") ?? assets[0];
+}
+
+// Order assets the way the DFX backend marks them as important: sortOrder
+// ascending (1..9 are the curated mainstream tokens, 99 is the bulk), name
+// alphabetical for ties. The raw API order otherwise puts DFI in front of
+// ETH on Ethereum, which is surprising in a tax-report context.
+function sortAssetsByDfxOrder(assets: SupportedAsset[]): SupportedAsset[] {
+  return [...assets].sort((a, b) => {
+    const sa = a.sortOrder ?? Number.MAX_SAFE_INTEGER;
+    const sb = b.sortOrder ?? Number.MAX_SAFE_INTEGER;
+    if (sa !== sb) return sa - sb;
+    return a.name.localeCompare(b.name);
+  });
+}
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -45,21 +75,17 @@ export default function App() {
   const { balance, loading: balanceLoading, error: balanceError, fetchBalance, reset } = useWalletBalance();
   const { prices, loading: priceLoading, error: priceError, fetchPrice } = useCurrencyPrice();
 
-  const currencies = ["USD", "EUR", "CHF"];
-
   const {
     register,
     handleSubmit,
     formState: { errors, isValid },
-    trigger,
-    setFocus,
     watch,
     setValue,
   } = useForm<FormData>({
     mode: "onChange",
     defaultValues: {
       currency: "CHF",
-      network: EvmBlockchain.ETH,
+      network: NonEvmBlockchain.BTC,
       date: "2024-12-31",
     },
   });
@@ -73,32 +99,40 @@ export default function App() {
   const selectedAsset = watch("asset");
   const selectedCurrency = watch("currency");
 
+  // Load the supported asset list from the DFX backend and group by chain.
   useEffect(() => {
     fetch("https://api.dfx.swiss/v1/asset")
       .then((response) => response.json())
       .then((data: Asset[]) => {
-        const map = data
+        const map: AssetMap = data
           .filter((asset): asset is SupportedAsset => isSupportedBlockchain(asset.blockchain))
-          .reduce((acc, asset) => {
+          .reduce((acc: AssetMap, asset) => {
             const key = asset.blockchain as Blockchain;
             if (!acc[key]) acc[key] = [];
-            acc[key].push(asset);
+            acc[key]!.push(asset);
             return acc;
-          }, {} as AssetMap);
+          }, {});
+        for (const key of Object.keys(map) as Blockchain[]) {
+          map[key] = sortAssetsByDfxOrder(map[key]!);
+        }
         setAssetMap(map);
 
-        // Set default asset for Ethereum if not already set
-        if (map[EvmBlockchain.ETH] && map[EvmBlockchain.ETH].length > 0 && !watch("asset")) {
-          setValue("asset", map[EvmBlockchain.ETH][0]);
+        // Pick the default asset for the form's default network (Bitcoin).
+        // pickNativeAsset() prefers the chain's native coin so first-time
+        // visitors land on BTC rather than an arbitrary first list entry.
+        const defaultNetworkAssets = map[NonEvmBlockchain.BTC];
+        if (defaultNetworkAssets?.length && !watch("asset")) {
+          setValue("asset", pickNativeAsset(defaultNetworkAssets));
         }
       })
-      .catch((error) => {
-        console.error("Error fetching assets:", error);
+      .catch((err) => {
+        console.error("Error fetching assets:", err);
         setError("Failed to load available tokens");
       })
       .finally(() => setIsLoading(false));
   }, []);
 
+  // Prefill from URL search params.
   useEffect(() => {
     const addressParam = urlParams.get("address");
     const dateParam = urlParams.get("date");
@@ -117,16 +151,6 @@ export default function App() {
     }
   }, [urlParams]);
 
-  // Keep the selected asset in sync with the selected network.
-  // Without this, switching networks via URL param or programmatically
-  // would leave an asset from the previous network in the form.
-  useEffect(() => {
-    if (!assetMap || !selectedNetwork) return;
-    if (selectedAsset && selectedAsset.blockchain === selectedNetwork) return;
-    const first = assetMap[selectedNetwork]?.[0];
-    if (first) setValue("asset", first);
-  }, [assetMap, selectedNetwork, selectedAsset]);
-
   useEffect(() => {
     const tokenParam = urlParams.get("token");
     if (!tokenParam) return;
@@ -135,10 +159,20 @@ export default function App() {
       selectedNetwork && assetMap && assetMap[selectedNetwork]?.find((asset) => asset.name === tokenParam);
     if (matchedAsset) {
       setValue("asset", matchedAsset);
-    } else {
+    } else if (assetMap) {
       setError(`Token "${tokenParam}" not found in network "${selectedNetwork}"`);
     }
   }, [urlParams, assetMap, selectedNetwork]);
+
+  // Keep the selected asset in sync with the selected network — the URL-param
+  // effect above only writes `network`, so we have to mirror the dropdown's
+  // onChange behaviour here.
+  useEffect(() => {
+    if (!assetMap || !selectedNetwork) return;
+    if (selectedAsset && selectedAsset.blockchain === selectedNetwork) return;
+    const candidates = assetMap[selectedNetwork];
+    if (candidates?.length) setValue("asset", pickNativeAsset(candidates));
+  }, [assetMap, selectedNetwork, selectedAsset]);
 
   async function onSubmit(data: FormData) {
     setError(undefined);
@@ -156,27 +190,10 @@ export default function App() {
         blockchain: network,
         date,
       });
-    } catch (error: any) {
-      setError(error.toString());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
     }
   }
-
-  const handleValidationAndFocus = async () => {
-    const isValid = await trigger();
-    if (!isValid) {
-      if (errors.date) {
-        setFocus("date");
-      } else if (errors.network) {
-        setFocus("network");
-      } else if (errors.asset) {
-        setFocus("asset");
-      } else if (errors.address) {
-        setFocus("address");
-      }
-    }
-
-    await handleSubmit(onSubmit)();
-  };
 
   const generatePDF = async () => {
     try {
@@ -187,116 +204,105 @@ export default function App() {
         prices,
         selectedCurrency,
       });
-    } catch (error) {
-      console.error("PDF generation failed:", error);
-      alert(`Failed to generate PDF: ${error}`);
+    } catch (e) {
+      console.error("PDF generation failed:", e);
+      alert(`Failed to generate PDF: ${e}`);
     }
   };
 
+  const availableNetworks = assetMap
+    ? SUPPORTED_NETWORKS.filter((n) => assetMap[n]?.length)
+    : [];
+
+  const isFetching = balanceLoading || priceLoading;
+  const visibleError = balanceError || priceError || error || undefined;
+
   return (
-    <div className="flex flex-col justify-start gap-8 p-2 pt-6 max-w-screen-sm">
-      <div>
-        <div className="text-4xl font-extrabold text-slate-900 dark:text-slate-200 tracking-tight">
-          Check Wallet Token Balance
-        </div>
-        <p className="mt-4 text-lg text-slate-700 dark:text-slate-400 leading-snug">
-          Select network, token, and enter address to check token balance on a specific date.
-        </p>
-      </div>
-      {isLoading ? (
-        <div>Loading...</div>
-      ) : !assetMap ? (
-        <div>No assets available</div>
-      ) : (
-        <form>
-          <div className="flex flex-col gap-4">
-            <DropDownMenu<Blockchain>
-              label="Network"
-              list={SUPPORTED_NETWORKS.filter((n) => assetMap[n]?.length)}
-              itemLabel={(item) => item}
-              value={selectedNetwork}
-              onChange={(value) => {
-                setValue("network", value);
-                setValue("asset", assetMap?.[value]?.[0]);
-              }}
-            />
-            <DropDownMenu<SupportedAsset>
-              label="Token"
-              list={selectedNetwork ? assetMap[selectedNetwork] ?? [] : []}
-              itemLabel={(item) => item.name}
-              value={selectedAsset}
-              onChange={(value) => {
-                setValue("asset", value);
-              }}
-              disabled={!selectedNetwork || (assetMap[selectedNetwork]?.length ?? 0) <= 1}
-            />
-            <InputField id="address" label="Address" register={register} errors={errors} />
-            <DatePicker id="date" label="Date" register={register} errors={errors} />
-            <DropDownMenu<string>
-              label="Currency"
-              list={currencies}
-              itemLabel={(item) => item}
-              value={selectedCurrency}
-              onChange={(value: string) => {
-                setValue("currency", value);
-              }}
-            />
-
-            <Button
-              label={balanceLoading || priceLoading ? "FETCHING DATA..." : "GET BALANCE"}
-              onClick={handleValidationAndFocus}
-              disabled={!!error || balanceLoading || priceLoading}
-              isLoading={balanceLoading || priceLoading}
-              isGrayedOut={!isValid}
-            />
-
-            {balance && !balanceLoading && !priceLoading && (
-              <Button
-                label="GENERATE PDF"
-                onClick={generatePDF}
-                disabled={false}
-                isGrayedOut={!isValid}
-              />
-            )}
-
-            {balance && !balanceLoading && !priceLoading && (
-              <div className="mt-2 p-4 rounded-md border border-green-200 bg-green-200 text-green-800">
-                <div className="font-semibold text-lg">
-                  {balance} {selectedAsset.name}
-                </div>
-                {prices && (
-                  <div className="mt-2">
-                    {selectedCurrency === "USD" && `≈ ${formatSwissNumber(parseFloat(balance) * prices.usd)} USD`}
-                    {selectedCurrency === "EUR" && `≈ ${formatSwissNumber(parseFloat(balance) * prices.eur)} EUR`}
-                    {selectedCurrency === "CHF" && `≈ ${formatSwissNumber(parseFloat(balance) * prices.chf)} CHF`}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {(balanceError || priceError || error) && (
-              <div className="mt-2 p-2 rounded-md font-medium bg-red-200 text-red-500">
-                {balanceError || priceError || error}
-              </div>
-            )}
-
-            <div className="mt-4 text-sm text-slate-500 dark:text-slate-400">
-              This wallet balance checker allows you to check token balances at specific dates across multiple
-              blockchain networks. You can pre-fill the form by passing parameters in the URL.
-            </div>
-
-            <div className="mt-4 text-sm text-slate-500 dark:text-slate-400">
-              Example Usage:{" "}
-              <a
-                href="/?network=Ethereum&token=USDT&address=0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe&date=2024-12-31"
-                className="underline text-blue-500 hover:text-blue-600 break-all"
-              >
-                /?network=Ethereum&token=USDT&address=0xde0B...7BAe&date=2024-12-31
-              </a>
-            </div>
+    <div className="flex min-h-screen flex-col bg-neutral-150">
+      <main className="mx-auto flex w-full max-w-[904px] flex-1 flex-col items-center gap-10 px-4 pt-16">
+        <header className="flex w-full flex-col items-center gap-5">
+          <Logo />
+          <div className="flex flex-col items-center gap-0">
+            <h1 className="text-center text-[26px] font-bold leading-7 tracking-tight text-neutral-700">
+              Generate Tax-Ready Wallet Balance Reports by Date
+            </h1>
+            <p className="mt-2 max-w-[660px] px-10 text-center text-base font-normal leading-5 text-neutral-700">
+              Enter a wallet address, select token, and date to generate a downloadable balance
+              report for tax and accounting purposes.
+            </p>
           </div>
-        </form>
-      )}
+        </header>
+
+        {isLoading ? (
+          <div className="py-12 text-neutral-500">Loading…</div>
+        ) : !assetMap ? (
+          <div className="py-12 text-neutral-500">No assets available</div>
+        ) : (
+          <form
+            className="w-full max-w-[660px] overflow-clip rounded-3xl bg-white"
+            onSubmit={handleSubmit(onSubmit)}
+          >
+            <WalletAddressInput register={register} errors={errors} setValue={setValue} />
+
+            <SectionRow title="Blockchain:" variant="first">
+              <SegmentedControl<Blockchain>
+                options={availableNetworks.map((n) => ({ value: n, label: n }))}
+                value={selectedNetwork}
+                onChange={(value) => setValue("network", value)}
+                ariaLabel="Blockchain"
+              />
+            </SectionRow>
+
+            <SectionRow title="Token">
+              <TokenSelect
+                options={selectedNetwork ? assetMap[selectedNetwork] ?? [] : []}
+                value={selectedAsset}
+                onChange={(value) => setValue("asset", value)}
+                disabled={!selectedNetwork || (assetMap[selectedNetwork]?.length ?? 0) <= 1}
+              />
+            </SectionRow>
+
+            <SectionRow title="Balance Date">
+              <DateInput register={register} errors={errors} />
+            </SectionRow>
+
+            <SectionRow title="Currency" variant="last">
+              <SegmentedControl<FormData["currency"]>
+                options={CURRENCIES.map((c) => ({ value: c, label: c }))}
+                value={selectedCurrency}
+                onChange={(value) => setValue("currency", value)}
+                layout="equal"
+                ariaLabel="Currency"
+              />
+            </SectionRow>
+
+            <div className="px-5 pb-5">
+              <OutputPanel
+                tokenName={selectedAsset?.name ?? ""}
+                balance={balance}
+                prices={prices}
+                currency={selectedCurrency}
+                isFetching={isFetching}
+                canSubmit={isValid && !visibleError}
+                onSubmit={handleSubmit(onSubmit)}
+                onGeneratePdf={generatePDF}
+                errorMessage={visibleError}
+              />
+            </div>
+          </form>
+        )}
+
+        <p className="px-4 pb-8 text-center text-sm text-neutral-500">
+          Example:{" "}
+          <a
+            href="/?network=Ethereum&token=USDT&address=0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe&date=2024-12-31"
+            className="break-all text-brand hover:underline"
+          >
+            /?network=Ethereum&amp;token=USDT&amp;address=0xde0B…&amp;date=2024-12-31
+          </a>
+        </p>
+      </main>
+      <Footer />
     </div>
   );
 }

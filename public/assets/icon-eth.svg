@@ -1,0 +1,13 @@
+<svg preserveAspectRatio="none" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Group">
+<path id="Vector" d="M10 20C15.5228 20 20 15.5228 20 10C20 4.47715 15.5228 0 10 0C4.47715 0 0 4.47715 0 10C0 15.5228 4.47715 20 10 20Z" fill="var(--fill-0, #627EEA)"/>
+<g id="Group_2">
+<path id="Vector_2" d="M10.3112 2.5V8.04375L14.9969 10.1375L10.3112 2.5Z" fill="var(--fill-0, white)" fill-opacity="0.602"/>
+<path id="Vector_3" d="M10.3112 2.5L5.625 10.1375L10.3112 8.04375V2.5Z" fill="var(--fill-0, white)"/>
+<path id="Vector_4" d="M10.3112 13.73V17.4969L15 11.01L10.3112 13.73Z" fill="var(--fill-0, white)" fill-opacity="0.602"/>
+<path id="Vector_5" d="M10.3112 17.4969V13.7294L5.625 11.01L10.3112 17.4969Z" fill="var(--fill-0, white)"/>
+<path id="Vector_6" d="M10.3112 12.8581L14.9969 10.1375L10.3112 8.045V12.8581Z" fill="var(--fill-0, white)" fill-opacity="0.2"/>
+<path id="Vector_7" d="M5.625 10.1375L10.3112 12.8581V8.045L5.625 10.1375Z" fill="var(--fill-0, white)" fill-opacity="0.602"/>
+</g>
+</g>
+</svg>
