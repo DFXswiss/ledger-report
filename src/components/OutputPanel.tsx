@@ -95,7 +95,7 @@ export function OutputPanel({
             }`}
           >
             {isFetching ? (
-              <LoadingSpinner hidden={false} className="inline w-4 h-4 me-2 text-white animate-spin" />
+              <LoadingSpinner className="inline w-4 h-4 me-2 text-white animate-spin" />
             ) : null}
             {isFetching ? "Fetching…" : "Get balance"}
           </button>

@@ -1,5 +1,4 @@
 interface LoadingSpinnerProps {
-  hidden: boolean;
   // Tailwind classes applied to the SVG. Recolor the animated arc
   // (currentColor) per call site so the spinner stays readable both on the
   // brand-colored button (text-white) and on the light page background
@@ -7,9 +6,7 @@ interface LoadingSpinnerProps {
   className: string;
 }
 
-export function LoadingSpinner({ hidden, className }: LoadingSpinnerProps): React.JSX.Element {
-  if (hidden) return <></>;
-
+export function LoadingSpinner({ className }: LoadingSpinnerProps): React.JSX.Element {
   return (
     <svg
       aria-hidden="true"

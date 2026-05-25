@@ -284,7 +284,7 @@ export default function App() {
 
         {isLoading ? (
           <div className="flex items-center justify-center gap-2 py-12 text-neutral-700">
-            <LoadingSpinner hidden={false} className="inline w-5 h-5 text-brand animate-spin" />
+            <LoadingSpinner className="inline w-5 h-5 text-brand animate-spin" />
             <span>Loading…</span>
           </div>
         ) : !assetMap ? (
