@@ -94,7 +94,9 @@ export function OutputPanel({
                 : "bg-brand/60 cursor-not-allowed"
             }`}
           >
-            {isFetching ? <LoadingSpinner hidden={false} /> : null}
+            {isFetching ? (
+              <LoadingSpinner hidden={false} className="inline w-4 h-4 me-2 text-white animate-spin" />
+            ) : null}
             {isFetching ? "Fetching…" : "Get balance"}
           </button>
           <button

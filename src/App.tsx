@@ -10,6 +10,7 @@ import { WalletAddressInput } from "./components/WalletAddressInput";
 import { TokenSelect } from "./components/TokenSelect";
 import { DateInput } from "./components/DateInput";
 import { OutputPanel } from "./components/OutputPanel";
+import { LoadingSpinner } from "./components/LoadingSpinner";
 
 import { useWalletBalance } from "./hooks/useWalletBalance";
 import { useCurrencyPrice } from "./hooks/useCurrencyPrice";
@@ -255,7 +256,10 @@ export default function App() {
         </header>
 
         {isLoading ? (
-          <div className="py-12 text-neutral-500">Loading…</div>
+          <div className="flex items-center justify-center gap-2 py-12 text-neutral-700">
+            <LoadingSpinner hidden={false} className="inline w-5 h-5 text-brand animate-spin" />
+            <span>Loading…</span>
+          </div>
         ) : !assetMap ? (
           // UX-display label resolution (not a silent data fallback): show
           // the real error message from the asset fetch when we have one,
