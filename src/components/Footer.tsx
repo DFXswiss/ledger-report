@@ -8,7 +8,7 @@ export function Footer() {
         className="inline-flex items-center gap-2 text-sm font-bold text-white hover:opacity-90"
       >
         <img src="/assets/icon-github.svg" alt="" className="size-5" aria-hidden="true" />
-        Submit an Issue
+        Submit an issue
       </a>
     </footer>
   );

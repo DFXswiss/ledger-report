@@ -35,7 +35,7 @@ export function WalletAddressInput({ register, errors, setValue }: Props) {
         <input
           type="text"
           autoComplete="off"
-          placeholder="enter address"
+          placeholder="Enter address"
           {...register("address", { required: "Wallet address is required" })}
           className="flex-1 bg-transparent text-base font-normal text-neutral-900 placeholder:text-neutral-400 focus:outline-none"
         />
@@ -44,7 +44,7 @@ export function WalletAddressInput({ register, errors, setValue }: Props) {
           onClick={handlePaste}
           className="ml-2 cursor-pointer rounded-lg bg-brand px-4 py-1.5 text-xs font-semibold text-white hover:opacity-90"
         >
-          paste
+          Paste
         </button>
       </div>
       {hasError && (

@@ -34,10 +34,22 @@ type FormData = {
 
 type AssetMap = Partial<Record<Blockchain, SupportedAsset[]>>;
 
+// Bitcoin first so the default-selected pill (NonEvmBlockchain.BTC) lives in
+// the top-left position of the segmented control rather than wrapping into a
+// second row on desktop.
 const SUPPORTED_NETWORKS: Blockchain[] = [
-  ...Object.values(EvmBlockchain),
   ...Object.values(NonEvmBlockchain),
+  ...Object.values(EvmBlockchain),
 ];
+
+// Human-friendly labels for the segmented control. The enum values double as
+// API/URL identities and stay unchanged; the labels only affect what the user
+// sees. Chains without an override fall back to their identity string.
+const BLOCKCHAIN_LABEL: Partial<Record<Blockchain, string>> = {
+  [EvmBlockchain.BSC]: "BNB Smart Chain",
+};
+
+const blockchainLabel = (chain: Blockchain): string => BLOCKCHAIN_LABEL[chain] ?? chain;
 
 const CURRENCIES: FormData["currency"][] = ["CHF", "EUR", "USD"];
 
@@ -242,9 +254,9 @@ export default function App() {
           >
             <WalletAddressInput register={register} errors={errors} setValue={setValue} />
 
-            <SectionRow title="Blockchain:" variant="first">
+            <SectionRow title="Blockchain" variant="first">
               <SegmentedControl<Blockchain>
-                options={availableNetworks.map((n) => ({ value: n, label: n }))}
+                options={availableNetworks.map((n) => ({ value: n, label: blockchainLabel(n) }))}
                 value={selectedNetwork}
                 onChange={(value) => setValue("network", value)}
                 ariaLabel="Blockchain"
