@@ -265,7 +265,23 @@ async function fetchBitcoinBalance(walletAddress: string, targetTimestamp: numbe
       ? `${ESPLORA_BASE}/address/${walletAddress}/txs/chain/${lastSeenTxid}`
       : `${ESPLORA_BASE}/address/${walletAddress}/txs/chain`;
 
-    const res = await fetch(url);
+    let res: Response;
+    try {
+      res = await fetch(url);
+    } catch (e) {
+      // `fetch` rejects with TypeError for network-level failures: DNS,
+      // TLS, CORS preflight, the provider being down, an offline browser.
+      // The default "TypeError: Failed to fetch" tells the user nothing
+      // actionable. Translate it once at the boundary and re-throw so the
+      // existing error path (setResult({error}) + re-throw to the form
+      // handler) still runs unchanged.
+      if (e instanceof TypeError) {
+        throw new Error(
+          `Bitcoin data provider unreachable. Check VITE_ESPLORA_URL or retry.`,
+        );
+      }
+      throw e;
+    }
     if (!res.ok) {
       if (res.status === 400 || res.status === 404) {
         // Address format is already validated above (isValidBtcAddress), so a
@@ -311,7 +327,19 @@ async function findBtcBlockByTimestamp(targetTimestamp: number): Promise<number>
     if (!isNaN(parsed)) return parsed;
   }
 
-  const res = await fetch(`${ESPLORA_BASE}/v1/mining/blocks/timestamp/${targetTimestamp}`);
+  let res: Response;
+  try {
+    res = await fetch(`${ESPLORA_BASE}/v1/mining/blocks/timestamp/${targetTimestamp}`);
+  } catch (e) {
+    // Same network-level translation as the address-paging fetch above:
+    // surface an actionable message instead of "Failed to fetch".
+    if (e instanceof TypeError) {
+      throw new Error(
+        `Bitcoin data provider unreachable. Check VITE_ESPLORA_URL or retry.`,
+      );
+    }
+    throw e;
+  }
   if (!res.ok) throw new Error(`Failed to resolve Bitcoin block for timestamp: ${res.status}`);
   const data = await res.json();
   if (typeof data.height !== "number") throw new Error("Invalid Esplora timestamp response");
