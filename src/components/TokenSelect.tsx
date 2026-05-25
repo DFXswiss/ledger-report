@@ -1,21 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import type { SupportedAsset } from "../types";
+import { TokenGlyph } from "./TokenGlyph";
 
 interface Props {
   options: SupportedAsset[];
   value: SupportedAsset | undefined;
   onChange: (value: SupportedAsset) => void;
   disabled?: boolean;
-}
-
-// Maps the asset name returned by the DFX API to a local SVG icon. Unknown
-// tokens fall back to a generic coin glyph so the layout stays stable.
-const TOKEN_ICON: Record<string, string> = {
-  ETH: "/assets/icon-eth.svg",
-};
-
-function tokenIcon(name: string): string | undefined {
-  return TOKEN_ICON[name];
 }
 
 export function TokenSelect({ options, value, onChange, disabled }: Props) {
@@ -30,8 +21,6 @@ export function TokenSelect({ options, value, onChange, disabled }: Props) {
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, [open]);
 
-  const iconSrc = value ? tokenIcon(value.name) : undefined;
-
   return (
     <div ref={ref} className="relative w-full">
       <button
@@ -43,7 +32,7 @@ export function TokenSelect({ options, value, onChange, disabled }: Props) {
         }`}
       >
         <span className="flex flex-1 items-center gap-1.5 text-base text-neutral-900">
-          {iconSrc && <img src={iconSrc} alt="" aria-hidden="true" className="size-5" />}
+          {value && <TokenGlyph name={value.name} className="size-5" />}
           {value?.name ?? "Select token"}
         </span>
         <img
@@ -65,9 +54,7 @@ export function TokenSelect({ options, value, onChange, disabled }: Props) {
                 setOpen(false);
               }}
             >
-              {tokenIcon(option.name) && (
-                <img src={tokenIcon(option.name)} alt="" aria-hidden="true" className="size-5" />
-              )}
+              <TokenGlyph name={option.name} className="size-5" />
               {option.name}
             </button>
           ))}
