@@ -14,6 +14,7 @@ import { OutputPanel } from "./components/OutputPanel";
 import { useWalletBalance } from "./hooks/useWalletBalance";
 import { useCurrencyPrice } from "./hooks/useCurrencyPrice";
 import { generateWalletBalancePDF } from "./utils/pdfGenerator";
+import { blockchainLabel } from "./utils/blockchainLabel";
 
 import {
   EvmBlockchain,
@@ -42,15 +43,6 @@ const SUPPORTED_NETWORKS: Blockchain[] = [
   ...Object.values(NonEvmBlockchain),
   ...Object.values(EvmBlockchain),
 ];
-
-// Human-friendly labels for the segmented control. The enum values double as
-// API/URL identities and stay unchanged; the labels only affect what the user
-// sees. Chains without an override fall back to their identity string.
-const BLOCKCHAIN_LABEL: Partial<Record<Blockchain, string>> = {
-  [EvmBlockchain.BSC]: "BNB Smart Chain",
-};
-
-const blockchainLabel = (chain: Blockchain): string => BLOCKCHAIN_LABEL[chain] ?? chain;
 
 const CURRENCIES: FormData["currency"][] = ["CHF", "EUR", "USD"];
 

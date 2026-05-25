@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
-import type { Currency, SupportedAsset } from "../types";
+import type { Blockchain, Currency, SupportedAsset } from "../types";
 import { formatSwissNumber } from "./formatNumber";
+import { blockchainLabel } from "./blockchainLabel";
 
 const hashAddress = async (address: string): Promise<string> => {
   const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(address));
@@ -50,7 +51,7 @@ const svgToPngDataUrl = async (
 interface PDFParams {
   formData: {
     date: string;
-    network: string;
+    network: Blockchain;
     asset: SupportedAsset;
     address: string;
   };
@@ -148,7 +149,7 @@ export const generateWalletBalancePDF = async ({
     y += rowGap;
 
     doc.text("Network:", labelX, y);
-    doc.text(formData.network || "Not specified", valueX, y);
+    doc.text(formData.network ? blockchainLabel(formData.network) : "Not specified", valueX, y);
     y += rowGap;
 
     doc.text("Token:", labelX, y);
@@ -195,12 +196,17 @@ export const generateWalletBalancePDF = async ({
     doc.setFontSize(10);
     doc.setTextColor(0, 0, 0); // Reset to black
 
-    const currentDate = new Date();
-    const formattedDate = `${currentDate.getDate()}.${(currentDate.getMonth() + 1)}.${currentDate.getFullYear()}`;
-    const formattedTime = `${currentDate.getHours().toString().padStart(2, '0')}:${currentDate.getMinutes().toString().padStart(2, '0')}:${currentDate.getSeconds().toString().padStart(2, '0')}`;
+    // Local-time YYYY-MM-DD HH:MM:SS — consistent with the ISO-style Date row
+    // above and free of locale-specific separators. Single-user PDF, so local
+    // time is the right reference frame for the reader.
+    const now = new Date();
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    const generatedOn =
+      `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ` +
+      `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 
     doc.text("Data generated with LedgerReport.com - Historical Wallet Balance Checker", 20, pageHeight - 20);
-    doc.text(`Generated on: ${formattedDate}, ${formattedTime}`, 20, pageHeight - 15);
+    doc.text(`Generated on: ${generatedOn}`, 20, pageHeight - 15);
 
     // Save the PDF
     doc.save(`wallet-balance-${formData.date || "report"}.pdf`);
