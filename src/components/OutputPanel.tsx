@@ -26,6 +26,11 @@ export function OutputPanel({
   errorMessage,
 }: Props) {
   const hasBalance = balance !== null;
+  const hasPrices = prices !== null;
+  // Only compute the fiat line when both the balance and the FX rate are
+  // available. Showing "0.00 CHF" next to a real balance when the price
+  // fetch failed would lie to the user — see the pricing-correctness rule:
+  // refuse to render a stale/wrong number, even as a placeholder.
   const fiatValue =
     prices && hasBalance
       ? currency === "USD"
@@ -33,8 +38,12 @@ export function OutputPanel({
         : currency === "EUR"
         ? prices.eur
         : prices.chf
-      : 0;
-  const fiatFormatted = formatSwissNumber(parseFloat(balance ?? "0") * fiatValue);
+      : null;
+  const fiatFormatted =
+    fiatValue !== null && balance !== null
+      ? formatSwissNumber(parseFloat(balance) * fiatValue)
+      : null;
+  const canGeneratePdf = hasBalance && hasPrices;
 
   return (
     <section className="w-full rounded-2xl bg-brand-100 px-5 pb-5 pt-6">
@@ -46,9 +55,15 @@ export function OutputPanel({
               <p className="text-3xl font-semibold leading-10">
                 {balance} {tokenName || ""}
               </p>
-              <p className="text-lg font-semibold leading-6 tracking-tight">
-                ≈ {fiatFormatted} {currency}
-              </p>
+              {fiatFormatted !== null ? (
+                <p className="text-lg font-semibold leading-6 tracking-tight">
+                  ≈ {fiatFormatted} {currency}
+                </p>
+              ) : (
+                // Keep the second line's height when the price fetch failed
+                // so the panel doesn't shrink and the buttons stay aligned.
+                <p className="text-lg leading-6 tracking-tight">&nbsp;</p>
+              )}
             </>
           ) : (
             // Preserve the same height as the resolved state (3xl line +
@@ -78,9 +93,9 @@ export function OutputPanel({
           <button
             type="button"
             onClick={onGeneratePdf}
-            disabled={!hasBalance || isFetching}
+            disabled={!canGeneratePdf || isFetching}
             className={`flex items-center justify-center overflow-clip rounded-md border-[1.5px] p-4 text-base font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 ${
-              hasBalance
+              canGeneratePdf
                 ? "border-brand text-brand cursor-pointer hover:bg-brand-100"
                 : "border-neutral-300 text-neutral-300 cursor-not-allowed"
             }`}
