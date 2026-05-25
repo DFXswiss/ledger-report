@@ -114,8 +114,13 @@ export default function App() {
   // Clear any previous balance + error whenever the form changes. watch()
   // returns a subscription, so we run it inside useEffect with a cleanup to
   // avoid leaking subscribers on every render.
+  //
+  // Currency changes are excluded: switching CHF/EUR/USD re-renders the fiat
+  // line from the already-fetched `prices` state, so wiping the balance there
+  // would force the user to re-fetch for no reason.
   useEffect(() => {
-    const subscription = watch(() => {
+    const subscription = watch((_value, { name }) => {
+      if (name === "currency") return;
       setError(undefined);
       reset();
     });
@@ -160,12 +165,15 @@ export default function App() {
       .finally(() => setIsLoading(false));
   }, []);
 
-  // Prefill from URL search params.
+  // Prefill from URL search params. shouldValidate forces react-hook-form to
+  // run the field's validators immediately, so a malformed `?date=2028-12-31`
+  // surfaces the same error message a typed-in future date would — instead of
+  // silently leaving `errors.date` empty until the user touches the field.
   useEffect(() => {
     const addressParam = urlParams.get("address");
     const dateParam = urlParams.get("date");
-    if (addressParam) setValue("address", addressParam);
-    if (dateParam) setValue("date", dateParam);
+    if (addressParam) setValue("address", addressParam, { shouldValidate: true });
+    if (dateParam) setValue("date", dateParam, { shouldValidate: true });
   }, [urlParams]);
 
   useEffect(() => {
@@ -194,13 +202,18 @@ export default function App() {
 
   // Keep the selected asset in sync with the selected network — the URL-param
   // effect above only writes `network`, so we have to mirror the dropdown's
-  // onChange behaviour here. Skip this when a token URL param is present so
-  // the token-param effect can write the final value without an intermediate
-  // pickNativeAsset() flicker.
+  // onChange behaviour here.
+  //
+  // We skip this only when the token-param effect has already landed a valid
+  // match (selected asset's name equals the URL token-param). Otherwise — e.g.
+  // when ?token=NONEXISTENT can't be resolved against the URL-supplied
+  // network — we fall through and pick the network's native coin so the Token
+  // select doesn't get stuck on the previous network's default.
   useEffect(() => {
     if (!assetMap || !selectedNetwork) return;
-    if (urlParams.has("token")) return;
-    if (selectedAsset && selectedAsset.blockchain === selectedNetwork) return;
+    const tokenParam = urlParams.get("token");
+    if (tokenParam && selectedAsset?.name === tokenParam) return;
+    if (selectedAsset && selectedAsset.blockchain === selectedNetwork && !tokenParam) return;
     const candidates = assetMap[selectedNetwork];
     if (!candidates?.length) return;
     try {
