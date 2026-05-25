@@ -21,6 +21,7 @@ export interface Asset {
   blockchain: string;
   chainId?: string; // token contract address (EVM only)
   decimals?: number;
+  type?: "Coin" | "Token";
 }
 
 export interface EvmAsset extends Asset {

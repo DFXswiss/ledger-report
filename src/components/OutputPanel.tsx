@@ -38,9 +38,9 @@ export function OutputPanel({
   return (
     <section className="w-full rounded-2xl bg-brand-100 px-5 pb-5 pt-6">
       <h2 className="px-2.5 text-xl font-semibold leading-7 text-black">Token Balance</h2>
-      <div className="mt-2 flex h-[120px] items-center gap-3">
+      <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-3">
         <div
-          className={`flex flex-1 flex-col self-stretch overflow-clip rounded-lg px-2.5 py-1 text-brand-800 ${
+          className={`flex min-w-0 flex-1 flex-col overflow-clip break-all rounded-lg px-2.5 py-1 text-brand-800 ${
             hasBalance ? "" : "opacity-30"
           }`}
         >
@@ -51,12 +51,12 @@ export function OutputPanel({
             ≈ {hasBalance ? fiatFormatted : "0.0"} {currency}
           </p>
         </div>
-        <div className="flex h-full w-[200px] flex-col gap-3">
+        <div className="flex w-full shrink-0 flex-col gap-3 sm:w-[200px]">
           <button
             type="button"
             onClick={onSubmit}
             disabled={!canSubmit || isFetching}
-            className={`flex flex-1 items-center justify-center gap-1.5 overflow-clip rounded-md p-4 text-base font-semibold text-white ${
+            className={`flex items-center justify-center gap-1.5 overflow-clip rounded-md p-4 text-base font-semibold text-white ${
               canSubmit && !isFetching
                 ? "bg-brand cursor-pointer hover:opacity-90"
                 : "bg-brand/60 cursor-not-allowed"
@@ -69,7 +69,7 @@ export function OutputPanel({
             type="button"
             onClick={onGeneratePdf}
             disabled={!hasBalance || isFetching}
-            className={`flex flex-1 items-center justify-center overflow-clip rounded-md border-[1.5px] p-4 text-base font-semibold ${
+            className={`flex items-center justify-center overflow-clip rounded-md border-[1.5px] p-4 text-base font-semibold ${
               hasBalance
                 ? "border-brand text-brand cursor-pointer hover:bg-brand-100"
                 : "border-neutral-300 text-neutral-300 cursor-not-allowed"

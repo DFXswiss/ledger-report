@@ -43,11 +43,13 @@ const SUPPORTED_NETWORKS: Blockchain[] = [
 
 const CURRENCIES: FormData["currency"][] = ["CHF", "EUR", "USD"];
 
-// Pick the native coin from a per-chain asset list (the entry without a
-// token contract address). Falls back to the first entry if no native coin
-// is present, e.g. on a chain that the DFX API only exposes as tokens.
+// Pick the native coin from a per-chain asset list. The DFX API tags native
+// assets with type "Coin" (ETH on Ethereum, BTC on Bitcoin, etc.) — these are
+// the tokens a first-time visitor expects to see selected. Falls back to the
+// first entry if no native coin is present, e.g. on a chain that the DFX API
+// only exposes as tokens.
 function pickNativeAsset(assets: SupportedAsset[]): SupportedAsset {
-  return assets.find((a) => !a.chainId) ?? assets[0];
+  return assets.find((a) => a.type === "Coin") ?? assets[0];
 }
 
 export default function App() {
