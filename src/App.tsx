@@ -43,6 +43,13 @@ const SUPPORTED_NETWORKS: Blockchain[] = [
 
 const CURRENCIES: FormData["currency"][] = ["CHF", "EUR", "USD"];
 
+// Pick the native coin from a per-chain asset list (the entry without a
+// token contract address). Falls back to the first entry if no native coin
+// is present, e.g. on a chain that the DFX API only exposes as tokens.
+function pickNativeAsset(assets: SupportedAsset[]): SupportedAsset {
+  return assets.find((a) => !a.chainId) ?? assets[0];
+}
+
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | undefined>();
@@ -92,8 +99,11 @@ export default function App() {
           }, {});
         setAssetMap(map);
 
-        if (map[EvmBlockchain.ETH]?.length && !watch("asset")) {
-          setValue("asset", map[EvmBlockchain.ETH]![0]);
+        // Prefer the network's native coin as the default token (the API order
+        // on Ethereum has DFI first which would surprise first-time users).
+        const ethAssets = map[EvmBlockchain.ETH];
+        if (ethAssets?.length && !watch("asset")) {
+          setValue("asset", pickNativeAsset(ethAssets));
         }
       })
       .catch((err) => {
@@ -141,8 +151,8 @@ export default function App() {
   useEffect(() => {
     if (!assetMap || !selectedNetwork) return;
     if (selectedAsset && selectedAsset.blockchain === selectedNetwork) return;
-    const first = assetMap[selectedNetwork]?.[0];
-    if (first) setValue("asset", first);
+    const candidates = assetMap[selectedNetwork];
+    if (candidates?.length) setValue("asset", pickNativeAsset(candidates));
   }, [assetMap, selectedNetwork, selectedAsset]);
 
   async function onSubmit(data: FormData) {
