@@ -118,11 +118,11 @@ export const generateWalletBalancePDF = async ({
 
       // Add title left-aligned below the brand strip.
       doc.setFontSize(20);
-      doc.text("Wallet Balance Report for Tax Purposes", 20, brandTopY + logomarkHeightMm + 16);
+      doc.text("Wallet Balance Report", 20, brandTopY + logomarkHeightMm + 16);
     } catch (logoError) {
       console.warn("Logo failed, continuing without:", logoError);
       doc.setFontSize(20);
-      doc.text("Wallet Balance Report for Tax Purposes", 20, 30);
+      doc.text("Wallet Balance Report", 20, 30);
     }
 
     // Determine starting Y position based on whether logo loaded

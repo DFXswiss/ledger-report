@@ -260,11 +260,11 @@ export default function App() {
           <Logo />
           <div className="flex flex-col items-center gap-0">
             <h1 className="text-center text-[26px] font-bold leading-7 tracking-tight text-neutral-700">
-              Generate Tax-Ready Wallet Balance Reports by Date
+              Wallet Balance Reports for Tax and Audit
             </h1>
             <p className="mt-2 max-w-[660px] px-10 text-center text-base font-normal leading-5 text-neutral-700">
               Enter a wallet address, select token, and date to generate a downloadable balance
-              report for tax and accounting purposes.
+              report for tax filings, audits, and accounting.
             </p>
           </div>
         </header>

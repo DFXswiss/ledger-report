@@ -22,20 +22,9 @@ export function Footer() {
             <img src="/assets/icon-github.svg" alt="" className="size-5" aria-hidden="true" />
             Source
           </a>
-          <span aria-hidden="true" className="text-neutral-400">
-            &middot;
-          </span>
-          <a
-            href="https://github.com/DFXswiss/ledger-report/issues/new"
-            target="_blank"
-            rel="noreferrer noopener"
-            className={`font-bold ${linkClass}`}
-          >
-            Submit an issue
-          </a>
         </nav>
         <p className="max-w-md text-xs leading-5 text-neutral-300 sm:text-right">
-          Address never stored. Data is queried on-demand from DFX, Alchemy, mempool.space,
+          Address never stored. Data is queried on-demand from Alchemy, mempool.space,
           and CoinGecko.
         </p>
       </div>
