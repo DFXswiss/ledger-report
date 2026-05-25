@@ -68,11 +68,11 @@ export const useWalletBalance = () => {
       }
 
       setResult({ balance, loading: false, error: null });
-    } catch (error: any) {
+    } catch (error: unknown) {
       setResult({
         balance: null,
         loading: false,
-        error: error.message || "Failed to fetch balance",
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   }, []);

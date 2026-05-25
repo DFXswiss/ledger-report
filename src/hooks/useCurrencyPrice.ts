@@ -178,11 +178,11 @@ export const useCurrencyPrice = () => {
       localStorage.setItem(cacheKey, JSON.stringify(priceData));
       setResult({ prices: priceData, loading: false, error: null });
       return priceData;
-    } catch (error: any) {
+    } catch (error: unknown) {
       setResult({
         prices: null,
         loading: false,
-        error: error.message || "Failed to fetch currency prices",
+        error: error instanceof Error ? error.message : String(error),
       });
       throw error;
     }
