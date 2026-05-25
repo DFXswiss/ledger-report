@@ -204,16 +204,22 @@ export default function App() {
   // effect above only writes `network`, so we have to mirror the dropdown's
   // onChange behaviour here.
   //
-  // We skip this only when the token-param effect has already landed a valid
-  // match (selected asset's name equals the URL token-param). Otherwise — e.g.
-  // when ?token=NONEXISTENT can't be resolved against the URL-supplied
-  // network — we fall through and pick the network's native coin so the Token
-  // select doesn't get stuck on the previous network's default.
+  // When the URL carries a `?token=` param we cede control entirely to the
+  // token-param effect above. Reading the param straight off `urlParams`
+  // (instead of comparing against `selectedAsset.name`) avoids a render race:
+  // when the token-param effect fires `setValue("asset", USDT)`, this effect
+  // re-runs in the same batch with a stale `selectedAsset` closure still
+  // pointing at the previous network's native coin. Without this short-circuit
+  // we'd overwrite the in-flight USDT pick with ETH on every render, looping
+  // until React bails out with "Maximum update depth exceeded".
+  //
+  // Without a token param, the regular sync applies: keep the asset's
+  // blockchain matching the selected network, otherwise pick the native coin
+  // so the Token select doesn't get stuck on the previous network's choice.
   useEffect(() => {
     if (!assetMap || !selectedNetwork) return;
-    const tokenParam = urlParams.get("token");
-    if (tokenParam && selectedAsset?.name === tokenParam) return;
-    if (selectedAsset && selectedAsset.blockchain === selectedNetwork && !tokenParam) return;
+    if (urlParams.has("token")) return;
+    if (selectedAsset && selectedAsset.blockchain === selectedNetwork) return;
     const candidates = assetMap[selectedNetwork];
     if (!candidates?.length) return;
     try {
