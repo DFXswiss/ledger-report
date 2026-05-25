@@ -246,7 +246,11 @@ async function fetchBitcoinBalance(walletAddress: string, targetTimestamp: numbe
     const res = await fetch(url);
     if (!res.ok) {
       if (res.status === 400 || res.status === 404) {
-        throw new Error(`Bitcoin address not found or invalid: ${walletAddress}`);
+        // Address format is already validated above (isValidBtcAddress), so a
+        // 400/404 here means Esplora has no record of any on-chain activity.
+        throw new Error(
+          `No on-chain activity found for ${walletAddress}. Double-check the address and try again.`,
+        );
       }
       throw new Error(`Esplora request failed: ${res.status} ${res.statusText}`);
     }
