@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { NonEvmBlockchain, isBtcBlockchain, type Blockchain } from "../types";
 import { getEstvBtcChf } from "../utils/estvTaxValues";
+import { cacheKey } from "../utils/cacheKey";
 
 interface PriceData {
   usd: number;
@@ -68,8 +69,8 @@ export const useCurrencyPrice = () => {
         const coinId = nativeCoinMap[blockchain];
         if (!coinId) throw new Error(`[CoinGecko] No native coin id for blockchain: ${blockchain}`);
 
-        const cacheKey = `price-coin-${coinId}-${formattedDate}`;
-        const cached = localStorage.getItem(cacheKey);
+        const key = cacheKey(["price-coin", coinId, formattedDate]);
+        const cached = localStorage.getItem(key);
         if (cached) {
           const cachedData: PriceData = JSON.parse(cached);
           if (isBtcBlockchain(blockchain)) {
@@ -101,7 +102,7 @@ export const useCurrencyPrice = () => {
           if (estvChf !== undefined) priceData.chf = estvChf;
         }
 
-        localStorage.setItem(cacheKey, JSON.stringify(priceData));
+        localStorage.setItem(key, JSON.stringify(priceData));
         setResult({ prices: priceData, loading: false, error: null });
         return priceData;
       }
@@ -110,8 +111,8 @@ export const useCurrencyPrice = () => {
       const isFPS = contractAddress.toLowerCase() === "0x1ba26788dfde592fec8bcb0eaff472a42be341b2" && blockchain === "Ethereum";
 
       if (isFPS) {
-        const cacheKey = `price-fps-${formattedDate}`;
-        const cached = localStorage.getItem(cacheKey);
+        const key = cacheKey(["price-fps", formattedDate]);
+        const cached = localStorage.getItem(key);
         if (cached) {
           const cachedData = JSON.parse(cached);
           setResult({ prices: cachedData, loading: false, error: null });
@@ -146,7 +147,7 @@ export const useCurrencyPrice = () => {
           eur: fpsPriceInChf * eurRate,
         };
 
-        localStorage.setItem(cacheKey, JSON.stringify(priceData));
+        localStorage.setItem(key, JSON.stringify(priceData));
         setResult({ prices: priceData, loading: false, error: null });
         return priceData;
       }
@@ -155,8 +156,8 @@ export const useCurrencyPrice = () => {
       const platform = platformMap[blockchain];
       if (!platform) throw new Error(`[CoinGecko] Unsupported blockchain: ${blockchain}`);
 
-      const cacheKey = `price-${contractAddress}-${formattedDate}`;
-      const cached = localStorage.getItem(cacheKey);
+      const key = cacheKey(["price", contractAddress, formattedDate]);
+      const cached = localStorage.getItem(key);
       if (cached) {
         const cachedData = JSON.parse(cached);
         setResult({ prices: cachedData, loading: false, error: null });
@@ -194,7 +195,7 @@ export const useCurrencyPrice = () => {
         };
       }
 
-      localStorage.setItem(cacheKey, JSON.stringify(priceData));
+      localStorage.setItem(key, JSON.stringify(priceData));
       setResult({ prices: priceData, loading: false, error: null });
       return priceData;
     } catch (error: unknown) {

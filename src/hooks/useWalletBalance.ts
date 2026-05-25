@@ -9,6 +9,7 @@ import {
   type SupportedAsset,
 } from "../types";
 import { formatTokenAmount } from "../utils/formatNumber";
+import { cacheKey } from "../utils/cacheKey";
 
 interface BalanceResult {
   balance: string | null;
@@ -131,9 +132,9 @@ async function fetchEvmBalance(
 }
 
 async function findEvmBlockByTimestamp(blockchain: EvmBlockchain, targetTimestamp: number): Promise<number> {
-  const cacheKey = `block-${blockchain}-${targetTimestamp}`;
+  const key = cacheKey(["block", blockchain, targetTimestamp]);
 
-  const cached = localStorage.getItem(cacheKey);
+  const cached = localStorage.getItem(key);
   if (cached) {
     const parsed = parseInt(cached, 10);
     if (!isNaN(parsed)) return parsed;
@@ -164,7 +165,7 @@ async function findEvmBlockByTimestamp(blockchain: EvmBlockchain, targetTimestam
     }
   }
 
-  localStorage.setItem(cacheKey, bestBlock.toString());
+  localStorage.setItem(key, bestBlock.toString());
   return bestBlock;
 }
 
@@ -277,8 +278,8 @@ async function fetchBitcoinBalance(walletAddress: string, targetTimestamp: numbe
 }
 
 async function findBtcBlockByTimestamp(targetTimestamp: number): Promise<number> {
-  const cacheKey = `block-${NonEvmBlockchain.BTC}-${targetTimestamp}`;
-  const cached = localStorage.getItem(cacheKey);
+  const key = cacheKey(["block", NonEvmBlockchain.BTC, targetTimestamp]);
+  const cached = localStorage.getItem(key);
   if (cached) {
     const parsed = parseInt(cached, 10);
     if (!isNaN(parsed)) return parsed;
@@ -289,6 +290,6 @@ async function findBtcBlockByTimestamp(targetTimestamp: number): Promise<number>
   const data = await res.json();
   if (typeof data.height !== "number") throw new Error("Invalid Esplora timestamp response");
 
-  localStorage.setItem(cacheKey, data.height.toString());
+  localStorage.setItem(key, data.height.toString());
   return data.height;
 }
