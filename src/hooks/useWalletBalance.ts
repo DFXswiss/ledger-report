@@ -79,6 +79,11 @@ export const useWalletBalance = () => {
         loading: false,
         error: error instanceof Error ? error.message : String(error),
       });
+      // Re-throw so the form submit handler short-circuits — there's no point
+      // continuing to a price fetch when the balance lookup already failed.
+      // Mirrors useCurrencyPrice.fetchPrice, which also re-throws after
+      // recording the error in local state.
+      throw error;
     }
   }, []);
 
