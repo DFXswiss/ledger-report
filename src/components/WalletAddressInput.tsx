@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { UseFormRegister, FieldErrors } from "react-hook-form";
 
 interface Props {
@@ -10,16 +10,48 @@ interface Props {
   setValue: (name: any, value: string) => void;
 }
 
+// Detect macOS so we can suggest the right keyboard shortcut when the
+// Clipboard API is blocked. The fall-through is "Ctrl + V" which covers
+// Windows, Linux, and ChromeOS.
+function pasteShortcutHint(): string {
+  if (typeof navigator === "undefined") return "Ctrl + V";
+  const platform = navigator.platform || "";
+  const userAgent = navigator.userAgent || "";
+  const isMac = /Mac|iPhone|iPad|iPod/i.test(platform) || /Mac OS X/.test(userAgent);
+  return isMac ? "⌘V" : "Ctrl + V";
+}
+
 export function WalletAddressInput({ register, errors, setValue }: Props) {
   const headingId = useId();
+  const [pasteFailed, setPasteFailed] = useState(false);
+  const pasteFailedTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (pasteFailedTimer.current !== null) {
+        window.clearTimeout(pasteFailedTimer.current);
+      }
+    };
+  }, []);
 
   const handlePaste = async () => {
     try {
       const text = await navigator.clipboard.readText();
       if (text) setValue("address", text.trim());
     } catch {
-      // Clipboard read can be blocked by the browser permission prompt — the
-      // user can fall back to manual paste, no need to surface a hard error.
+      // Clipboard read can be blocked by browser permission (Safari, Firefox
+      // without user gesture, locked-down enterprise policy). Surface a brief
+      // inline hint so the user knows they can still paste manually with the
+      // keyboard shortcut — the auto-clearing timer keeps it from sticking
+      // around once the user has read it.
+      setPasteFailed(true);
+      if (pasteFailedTimer.current !== null) {
+        window.clearTimeout(pasteFailedTimer.current);
+      }
+      pasteFailedTimer.current = window.setTimeout(() => {
+        setPasteFailed(false);
+        pasteFailedTimer.current = null;
+      }, 4000);
     }
   };
 
@@ -57,6 +89,15 @@ export function WalletAddressInput({ register, errors, setValue }: Props) {
       {hasError && (
         <p className="mt-2 px-2.5 text-xs font-medium text-white">
           {(errors.address?.message as string) || "Wallet address is required"}
+        </p>
+      )}
+      {pasteFailed && !hasError && (
+        <p
+          role="status"
+          aria-live="polite"
+          className="mt-2 px-2.5 text-xs font-medium text-white"
+        >
+          Clipboard blocked — use {pasteShortcutHint()} to paste manually.
         </p>
       )}
     </section>
