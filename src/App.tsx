@@ -115,12 +115,18 @@ export default function App() {
   // returns a subscription, so we run it inside useEffect with a cleanup to
   // avoid leaking subscribers on every render.
   //
-  // Currency changes are excluded: switching CHF/EUR/USD re-renders the fiat
-  // line from the already-fetched `prices` state, so wiping the balance there
-  // would force the user to re-fetch for no reason.
+  // Currency changes are a special case: switching CHF/EUR/USD re-renders
+  // the fiat line from the already-fetched `prices` state, so wiping the
+  // balance would force the user to re-fetch for no reason. But we still
+  // clear the error — an error from a previous fetch attempt shouldn't
+  // stay stuck once the user touches the form again, even via the currency
+  // toggle.
   useEffect(() => {
     const subscription = watch((_value, { name }) => {
-      if (name === "currency") return;
+      if (name === "currency") {
+        setError(undefined);
+        return;
+      }
       setError(undefined);
       reset();
     });
