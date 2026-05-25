@@ -165,16 +165,27 @@ export default function App() {
       .finally(() => setIsLoading(false));
   }, []);
 
-  // Prefill from URL search params. shouldValidate forces react-hook-form to
-  // run the field's validators immediately, so a malformed `?date=2028-12-31`
-  // surfaces the same error message a typed-in future date would — instead of
-  // silently leaving `errors.date` empty until the user touches the field.
+  // Prefill from URL search params.
+  //
+  // We pass BOTH `shouldValidate` and `shouldTouch` so a malformed
+  // `?date=2099-12-31` surfaces the same error message a typed-in future
+  // date would. `shouldValidate` alone runs the validator but leaves the
+  // field untouched — DateInput / WalletAddressInput both gate their visible
+  // error border + message on `errors.<field>`, and without `shouldTouch`
+  // the user sees a disabled Get balance button with no hint why.
+  //
+  // We depend on `assetMap` so this effect re-fires once the form fields
+  // are mounted: the DateInput only renders after `assetMap` loads, and
+  // `setValue` is a no-op for fields that aren't registered yet. Re-running
+  // post-mount makes sure the validator actually attaches to the field and
+  // populates `errors.date`.
   useEffect(() => {
+    if (!assetMap) return;
     const addressParam = urlParams.get("address");
     const dateParam = urlParams.get("date");
-    if (addressParam) setValue("address", addressParam, { shouldValidate: true });
-    if (dateParam) setValue("date", dateParam, { shouldValidate: true });
-  }, [urlParams]);
+    if (addressParam) setValue("address", addressParam, { shouldValidate: true, shouldTouch: true });
+    if (dateParam) setValue("date", dateParam, { shouldValidate: true, shouldTouch: true });
+  }, [urlParams, assetMap]);
 
   useEffect(() => {
     const networkParam = urlParams.get("network");
