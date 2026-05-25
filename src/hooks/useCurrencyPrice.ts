@@ -188,12 +188,15 @@ export const useCurrencyPrice = () => {
     }
   }, []);
 
-  // Convert date to "DD-MM-YYYY" format
+  // Convert date to "DD-MM-YYYY" format. The input is a plain calendar day
+  // (YYYY-MM-DD), so we read it as a UTC instant and use the UTC accessors —
+  // otherwise west-of-UTC locales would read "2024-12-31T00:00:00Z" as
+  // 2024-12-30 local and ask CoinGecko for the wrong day.
   function formatDate(date: string): string {
     const dateObj = new Date(date + "T00:00:00Z");
-    const day = dateObj.getDate().toString().padStart(2, "0");
-    const month = (dateObj.getMonth() + 1).toString().padStart(2, "0");
-    const year = dateObj.getFullYear();
+    const day = dateObj.getUTCDate().toString().padStart(2, "0");
+    const month = (dateObj.getUTCMonth() + 1).toString().padStart(2, "0");
+    const year = dateObj.getUTCFullYear();
     return `${day}-${month}-${year}`;
   }
 
