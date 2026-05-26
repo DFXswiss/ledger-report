@@ -1,38 +1,83 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: "Inter", system-ui, Avenir, Helvetica, Arial, sans-serif;
+
+  /* Brand */
+  --color-brand: #6565e3;
+  --color-brand-100: #ebebfa;
+  --color-brand-200: #d4d4f7;
+  --color-brand-800: #4141b0;
+
+  /* Neutrals */
+  --color-neutral-150: #eaecf2;
+  --color-neutral-300: #ced2de;
+  --color-neutral-400: #949db8;
+  --color-neutral-500: #646e8b;
+  --color-neutral-700: #334155;
+  --color-neutral-800: #1e253b;
+  --color-neutral-900: #0f172a;
+
+  /* Surfaces */
+  --color-surface: #ffffff;
+  --color-surface-muted: #ebebfa;
+  --color-bg: #eaecf2;
+  --color-bg-dark: #1e253b;
+
+  /* Radii */
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 24px;
+}
+
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: var(--font-sans);
   line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
+  color: var(--color-neutral-800);
+  background-color: var(--color-bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-
 body {
   margin: 0;
-  display: flex;
-  place-items: start;
-  min-width: 100vw;
   min-height: 100vh;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+#root {
+  min-height: 100vh;
 }
 
+/* Print stylesheet — strip interactive chrome that's noise on paper.
+ *
+ * Hidden: the dark footer (links + branding), any element marked
+ * data-print="hide" (the blockchain/currency segmented controls), and
+ * the primary action buttons (button[type="button"]) inside the form —
+ * none of these mean anything on a printed tax-report page.
+ *
+ * Kept: wallet address, selected token, balance date, and the result
+ * panel — that's the information a user wants on a tax-report printout.
+ * The neutral page background is forced to white so we don't waste
+ * toner printing the dark surround.
+ */
+@media print {
+  footer,
+  [data-print="hide"],
+  /* Hide any SectionRow that wraps a segmented control (Blockchain row,
+   * Currency row) — the heading would otherwise sit above an empty area. */
+  div:has(> div > [data-print="hide"]),
+  /* Hide the Get balance / Generate PDF action buttons — interactive chrome
+   * is noise on a printed tax-report page. */
+  form button[type="button"] {
+    display: none !important;
+  }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
+  body,
+  #root {
+    background: #ffffff !important;
   }
 }
